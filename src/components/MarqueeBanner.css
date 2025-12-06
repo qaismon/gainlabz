@@ -1,0 +1,26 @@
+
+/* MarqueeBanner.css */
+
+/* Define the horizontal scrolling animation */
+@keyframes marquee-scroll {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        /* Move half the total width of the content (since we duplicated it) */
+        transform: translateX(-50%);
+    }
+}
+
+.marquee-container {
+    /* Ensures the animation starts off-screen and only scrolls horizontally */
+    white-space: nowrap; 
+    overflow: hidden;
+}
+
+.marquee-content {
+    /* Combines the duplicated items onto one line */
+    display: flex;
+    /* Apply the animation */
+    animation: marquee-scroll 15s linear infinite; /* Adjust speed (30s) as needed */
+}
