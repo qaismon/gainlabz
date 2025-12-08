@@ -27,6 +27,7 @@ function ListProducts() {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price ({currency})</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bestseller</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                         </tr>
@@ -38,7 +39,6 @@ function ListProducts() {
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <img 
                                             src={item.image[0]} 
-                                            alt={item.name} 
                                             className="w-12 h-12 object-cover rounded" 
                                         />
                                     </td>
@@ -49,6 +49,9 @@ function ListProducts() {
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {currency}{item.price.toFixed(2)}
                                     </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.stock}</td>
+
+
                                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${item.bestseller ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>
                                             {item.bestseller ? 'Yes' : 'No'}

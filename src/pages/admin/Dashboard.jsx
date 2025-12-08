@@ -26,7 +26,6 @@ function Dashboard() {
 
     const orders = contextOrders || [];
 
-    // ----------- CALCULATED METRICS -----------
     const { totalProducts, totalOrders, pendingOrders, totalRevenue } =
         useMemo(() => {
             const totalProds = products?.length || 0;
@@ -110,7 +109,6 @@ function Dashboard() {
             }));
     }, [orders]);
 
-    // Product Category Distribution
     const categoryChart = useMemo(() => {
         const catMap = {};
 
@@ -124,7 +122,6 @@ function Dashboard() {
         }));
     }, [products]);
 
-    // ----------- UI -----------
 
     return (
         <div className="space-y-10 pb-10">

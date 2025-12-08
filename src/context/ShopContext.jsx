@@ -279,56 +279,76 @@ function ShopContextProvider(props) {
         }
     };
 
-function addToCart(itemId, flavor, quantity = 1) {
-  if (!isLoggedIn) {
-    toast.warn("Please log in to add items to your cart.");
-    navigate('/login');
-    return false;
-  }
+    function addToCart(itemId, flavor, quantity = 1) {
+        if (!isLoggedIn) {
+            toast.warn("Please log in to add items to your cart.");
+            navigate('/login');
+            return false;
+        }
 
-  const qty = Math.max(1, Number(quantity) || 0);
-  if (qty <= 0) return false;
+        const qty = Math.max(1, Number(quantity) || 0);
+        if (qty <= 0) return false;
 
-  setCartItems(prevCart => {
-    const cartData = safeClone(prevCart || {});
-    if (!cartData[itemId]) cartData[itemId] = {};
+        const productInfo = products.find(product => String(product.id) === String(itemId));
 
-    cartData[itemId][flavor] = (Number(cartData[itemId][flavor]) || 0) + qty;
+        if (!productInfo) {
+            toast.error("Product not found.");
+            return false;
+        }
+        
+        const availableStock = Number(productInfo.stock) || 0;
+        const currentCartQuantity = Number(cartItems[itemId]?.[flavor]) || 0;
+        
+        const newTotalQuantity = currentCartQuantity + qty;
 
-confetti({
-  particleCount: 200,
-  spread: 150,
-  startVelocity: 60,
-  origin: { y: 0.8 }
-});
-    return cartData;
-  });
+        if (newTotalQuantity > availableStock) {
+            if (availableStock === 0) {
+                toast.error(`${productInfo.name} is currently out of stock.`);
+            } else {
+                toast.error(`Only ${availableStock} units of ${productInfo.name} are available in stock.`);
+            }
+            return false;
+        }
 
+        setCartItems(prevCart => {
+            const cartData = safeClone(prevCart || {});
+            if (!cartData[itemId]) cartData[itemId] = {};
 
+            cartData[itemId][flavor] = newTotalQuantity;
 
-  return true;
-}
+            confetti({
+                particleCount: 200,
+                spread: 150,
+                startVelocity: 60,
+                origin: { y: 0.8 }
+            });
+            return cartData;
+        });
 
-const updateQuantity = (itemId, flavor, quantity) => {
-  setCartItems(prevCart => {
-    const cartData = safeClone(prevCart || {});
-
-    if (!cartData[itemId]) cartData[itemId] = {};
-
-    const qty = Number(quantity) || 0;
-
-    if (qty <= 0) {
-      delete cartData[itemId][flavor];
-      if (Object.keys(cartData[itemId]).length === 0) {
-        delete cartData[itemId];
-      }
-    } else {
-      cartData[itemId][flavor] = qty;
+        return true;
     }
 
-    return cartData;
-  });
-};
+
+    const updateQuantity = (itemId, flavor, quantity) => {
+        setCartItems(prevCart => {
+            const cartData = safeClone(prevCart || {});
+
+            if (!cartData[itemId]) cartData[itemId] = {};
+
+            const qty = Number(quantity) || 0;
+
+            if (qty <= 0) {
+                delete cartData[itemId][flavor];
+                if (Object.keys(cartData[itemId]).length === 0) {
+                    delete cartData[itemId];
+                }
+            } else {
+                cartData[itemId][flavor] = qty;
+            }
+
+            return cartData;
+        });
+    };
 
 
     const clearCart = () => {
@@ -375,6 +395,26 @@ const updateQuantity = (itemId, flavor, quantity) => {
 
             const updatedOrders = [orderData, ...(userData.orders || [])];
 
+            const stockUpdatePromises = orderData.items.map(async (item) => {
+                const productId = item.id;
+                const quantitySold = Number(item.quantity) || 0;
+
+                const productRes = await fetch(`${BASE_URL}/products/${productId}`);
+                if (!productRes.ok) return;
+                const product = await productRes.json();
+                
+                const currentStock = Number(product.stock) || 0;
+                const newStock = Math.max(0, currentStock - quantitySold);
+
+                await fetch(`${BASE_URL}/products/${productId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ stock: newStock }),
+                });
+            });
+
+            await Promise.all(stockUpdatePromises);
+            
             const patchResponse = await fetch(`${BASE_URL}/users/${activeUserId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
@@ -385,12 +425,12 @@ const updateQuantity = (itemId, flavor, quantity) => {
 
             setOrders(updatedOrders);
             setCartItems({});
-
-            toast.success("Order placed successfully!");
+            
+            toast.success("Order placed successfully! Stock updated.");
             return true;
         } catch (error) {
-            console.error("Error adding order:", error);
-            toast.error("Failed to save order to account.");
+            console.error("Error adding order or reducing stock:", error);
+            toast.error("Failed to save order or update stock.");
             return false;
         }
     };
@@ -402,10 +442,21 @@ const updateQuantity = (itemId, flavor, quantity) => {
         }
 
         try {
-            const response = await fetch(`${BASE_URL}/users/${activeUserId}`);
-            if (!response.ok) throw new Error("Failed to fetch user");
+            const userResponse = await fetch(`${BASE_URL}/users/${activeUserId}`);
+            if (!userResponse.ok) throw new Error("Failed to fetch user");
 
-            const userData = await response.json();
+            const userData = await userResponse.json();
+            
+            const orderToCancel = (userData.orders || []).find(order => String(order.id) === String(orderId));
+
+            if (!orderToCancel || orderToCancel.status === 'Cancelled') {
+                if (orderToCancel.status === 'Cancelled') {
+                    toast.warn("Order is already cancelled.");
+                } else {
+                    toast.error("Order not found.");
+                }
+                return false;
+            }
 
             const updatedOrders = (userData.orders || []).map(order => {
                 if (String(order.id) === String(orderId)) {
@@ -414,103 +465,167 @@ const updateQuantity = (itemId, flavor, quantity) => {
                 return order;
             });
 
+            const stockUpdatePromises = orderToCancel.items.map(async (item) => {
+                const productId = item.id;
+                const quantityToRestore = Number(item.quantity) || 0;
+
+                const productRes = await fetch(`${BASE_URL}/products/${productId}`);
+                if (!productRes.ok) return;
+                const product = await productRes.json();
+                
+                const currentStock = Number(product.stock) || 0;
+                const newStock = currentStock + quantityToRestore;
+
+                await fetch(`${BASE_URL}/products/${productId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ stock: newStock }),
+                });
+            });
+
+            await Promise.all(stockUpdatePromises);
+
             const patchResponse = await fetch(`${BASE_URL}/users/${activeUserId}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ orders: updatedOrders })
             });
 
-            if (!patchResponse.ok) throw new Error("Failed to update order");
+            if (!patchResponse.ok) throw new Error("Failed to update order status");
 
             setOrders(updatedOrders);
-            toast.success("Order cancelled successfully!");
+            
+            await fetchProducts(); 
+
+            toast.success("Order cancelled and stock restored successfully!");
             return true;
 
         } catch (error) {
-            console.error("Cancel order error:", error);
-            toast.error("Failed to cancel order.");
+            console.error("Cancel order or stock restoration error:", error);
+            toast.error("Failed to cancel order or restore stock.");
             return false;
         }
     };
 
     const deleteProduct = async (productId) => {
-    try {
-        const response = await fetch(`${BASE_URL}/products/${productId}`, {
-            method: "DELETE",
-        });
+        try {
+            const response = await fetch(`${BASE_URL}/products/${productId}`, {
+                method: "DELETE",
+            });
 
-        if (!response.ok) throw new Error("Failed to delete product");
+            if (!response.ok) throw new Error("Failed to delete product");
 
-        setProducts(prev => prev.filter(p => String(p.id) !== String(productId)));
+            setProducts(prev => prev.filter(p => String(p.id) !== String(productId)));
 
-        toast.success("Product deleted successfully!");
-        return true;
+            toast.success("Product deleted successfully!");
+            return true;
 
-    } catch (error) {
-        console.error("Delete product error:", error);
-        toast.error("Failed to delete product.");
-        return false;
-    }
-};
+        } catch (error) {
+            console.error("Delete product error:", error);
+            toast.error("Failed to delete product.");
+            return false;
+        }
+    };
 
-const updateProduct = async (productId, productObj) => {
-  try {
-    const res = await fetch(`${BASE_URL}/products/${productId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(productObj),
-    });
+    const updateProduct = async (productId, productObj) => {
+        try {
+            const response = await fetch(`${BASE_URL}/products/${productId}`, {
+                method: 'PATCH', 
+                headers: { 
+                    'Content-Type': 'application/json' 
+                },
+                body: JSON.stringify(productObj), 
+            });
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      throw new Error(`Server returned ${res.status}: ${text}`);
-    }
+            if (!response.ok) {
+                throw new Error(`Failed to update product: ${response.statusText}`);
+            }
 
-    setProducts(prev => prev.map(p => (String(p.id) === String(productId) ? { ...p, ...productObj } : p)));
+            const updatedProduct = await response.json();
+            
+            setProducts(prevProducts => 
+                prevProducts.map(product => 
+                    product.id === productId ? updatedProduct : product
+                )
+            );
+            toast.success(`Product ${productId} updated locally.`);
+            return true;
+            
+        } catch (error) {
+            console.error("Error updating product:", error);
+            toast.error("Could not save changes to server.");
+            return false;
+        }
+    };
 
-    toast.success("Product updated successfully!");
-    return true;
-  } catch (err) {
-    console.error("updateProduct error:", err);
-    toast.error("Failed to update product. See console for details.");
-    return false;
-  }
-};
+    const makeId = (prefix = 'P') => `${prefix}${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}`;
 
-const makeId = (prefix = 'P') => `${prefix}${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}`;
+    const addProduct = async (productObj) => {
+        try {
+            const id = productObj.id || makeId('prod_');
+            const productToSend = { ...productObj, id };
 
-const addProduct = async (productObj) => {
-  try {
-    const id = productObj.id || makeId('prod_');
-    const productToSend = { ...productObj, id };
+            const res = await fetch(`${BASE_URL}/products`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(productToSend),
+            });
 
-    const res = await fetch(`${BASE_URL}/products`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(productToSend),
-    });
+            if (!res.ok) {
+                const text = await res.text().catch(() => '');
+                throw new Error(`Server returned ${res.status}: ${text}`);
+            }
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      throw new Error(`Server returned ${res.status}: ${text}`);
-    }
+            const created = await res.json();
 
-    const created = await res.json();
+            setProducts(prev => [created, ...prev]);
 
-    setProducts(prev => [created, ...prev]);
+            toast.success("Product added successfully!");
+            return true;
+        } catch (err) {
+            console.error("addProduct error:", err);
+            toast.error("Failed to add product. See console for details.");
+            return false;
+        }
+    };
 
-    toast.success("Product added successfully!");
-    return true;
-  } catch (err) {
-    console.error("addProduct error:", err);
-    toast.error("Failed to add product. See console for details.");
-    return false;
-  }
-};
+    const isAdmin = userRole === 'admin';
 
-const isAdmin = userRole === 'admin';
+    const makeUserAdmin = async (userId) => {
+        const token = userToken; 
+        
+        if (!token) {
+            toast.error("Admin session token is missing. Please re-login.");
+            throw new Error("Authentication token missing.");
+        }
+        
+        if (userRole !== 'admin') {
+            toast.error("Access Denied. Only Admins can promote users.");
+            throw new Error("Unauthorized: User is not an admin.");
+        }
+        
+        try {
+            const response = await fetch(`${BASE_URL}/users/${userId}`, { 
+                method: 'PATCH', 
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({ role: 'admin' }), 
+            });
 
+            if (!response.ok) {
+                const errorText = await response.text().catch(() => response.statusText);
+                throw new Error(`Failed to update user role: ${errorText}`);
+            }
 
+            toast.success("User successfully promoted to Admin!");
+            return response.json(); 
+        } catch (error) {
+            console.error("Error making user admin:", error);
+            throw error;
+        }
+    };
 
     const value = {
         products, currency, delivery_fee, search, setSearch, showSearch, setShowSearch,
@@ -522,10 +637,8 @@ const isAdmin = userRole === 'admin';
         fetchAllUsers,
         defaultAddress,
         updateDefaultAddress,
-        fetchUserData, cancelOrder, deleteProduct,  updateProduct,
-         addProduct, updateQuantity, isAdmin
-
-  
+        fetchUserData, cancelOrder, deleteProduct, updateProduct,
+        addProduct, updateQuantity, isAdmin, fetchProducts, makeUserAdmin
     };
 
     return (

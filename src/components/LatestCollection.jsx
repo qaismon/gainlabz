@@ -8,18 +8,10 @@ import Title from "./Title";
 export default function Collection() {
   const { products = [], addToCart, currency } = useContext(ShopContext);
 
-  
   const [activeProduct, setActiveProduct] = useState(null); 
   const [qty, setQty] = useState(1);
   const [selectedFlavor, setSelectedFlavor] = useState(null); 
 
-  
-  const [flavorPickerOpen, setFlavorPickerOpen] = useState(false);
-  const [pickerProduct, setPickerProduct] = useState(null);
-  const [pickerSelectedFlavor, setPickerSelectedFlavor] = useState(null);
-  const [pickerQty, setPickerQty] = useState(1);
-
-  
   const latestFive = useMemo(() => {
     const list = (products || []).slice();
     list.sort((a, b) => {
@@ -30,15 +22,16 @@ export default function Collection() {
     return list.slice(0, 5);
   }, [products]);
 
-  
   const openQuickView = (product) => {
+    const maxQty = Number(product.stock) || 0;
+
     setActiveProduct(product);
-    setQty(1);
-    
     const defaultFlavor = Array.isArray(product.flavor) && product.flavor.length > 0 ? product.flavor[0] : null;
     setSelectedFlavor(defaultFlavor);
+    setQty(maxQty > 0 ? 1 : 0);
     document.body.style.overflow = "hidden";
   };
+
   const closeQuickView = () => {
     setActiveProduct(null);
     setSelectedFlavor(null);
@@ -47,68 +40,46 @@ export default function Collection() {
   };
 
   useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") { closeQuickView(); closeFlavorPicker(); } };
+    const onKey = (e) => { if (e.key === "Escape") { closeQuickView(); } };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  
   const onGridAddToCart = (product) => {
     const flavors = Array.isArray(product.flavor) ? product.flavor : [];
+    
+    if (Number(product.stock) === 0) {
+      toast.error(`${product.name} is currently out of stock.`);
+      return;
+    }
+
     if (flavors.length <= 1) {
-      
       const flavor = flavors[0] || "Default";
       try {
         addToCart(product.id, flavor);
         toast.success(`${product.name} (${flavor}) added to cart`);
       } catch (err) {
-        console.error(err);
         toast.error("Couldn't add to cart");
       }
       return;
     }
-
     
-    setPickerProduct(product);
-    setPickerSelectedFlavor(flavors[0]);
-    setPickerQty(1);
-    setFlavorPickerOpen(true);
-    document.body.style.overflow = "hidden";
+    openQuickView(product);
   };
 
-  const closeFlavorPicker = () => {
-    setFlavorPickerOpen(false);
-    setPickerProduct(null);
-    setPickerSelectedFlavor(null);
-    setPickerQty(1);
-    document.body.style.overflow = "";
-  };
-
-  const confirmPickerAdd = () => {
-    if (!pickerProduct) return;
-    const flavor = pickerSelectedFlavor || (Array.isArray(pickerProduct.flavor) ? pickerProduct.flavor[0] : "Default");
-    for (let i = 0; i < (Number(pickerQty) || 1); i++) {
-      try {
-        addToCart(pickerProduct.id, flavor);
-      } catch (err) {
-        console.error(err);
-        toast.error("Couldn't add to cart");
-        return;
-      }
-    }
-    toast.success(`${pickerProduct.name} (${flavor}) x${pickerQty} added to cart`);
-    closeFlavorPicker();
-  };
-
-  
   const confirmQuickviewAdd = () => {
-    if (!activeProduct) return;
+    if (!activeProduct || qty === 0 || !selectedFlavor) return;
+    
+    if (qty > activeProduct.stock) {
+        toast.error(`Cannot add ${qty} items. Only ${activeProduct.stock} left in stock.`);
+        return;
+    }
+
     const flavor = selectedFlavor || (Array.isArray(activeProduct.flavor) ? activeProduct.flavor[0] : "Default");
     for (let i = 0; i < (Number(qty) || 1); i++) {
       try {
         addToCart(activeProduct.id, flavor);
       } catch (err) {
-        console.error(err);
         toast.error("Couldn't add to cart");
         return;
       }
@@ -117,11 +88,14 @@ export default function Collection() {
     closeQuickView();
   };
 
-  
   const cardVariants = {
     rest: { y: 0, boxShadow: "0 0px 0px rgba(0,0,0,0.04)" },
     hover: { y: -4, boxShadow: "0 12px 30px rgba(0,0,0,0.08)" }
   };
+
+    const maxStock = activeProduct ? Number(activeProduct.stock) : 0;
+    const isOutOfStock = maxStock === 0;
+    const isMaxQuantity = qty >= maxStock;
 
   return (
     <div className="max-w-[1200px] mx-auto py-8 px-4">
@@ -129,7 +103,6 @@ export default function Collection() {
                 <Title text1={"Latest"} text2={"Collection"} />
             </div>
 
-      
       <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 gap-y-6'>
         {latestFive.map(product => (
           <motion.article
@@ -148,7 +121,6 @@ export default function Collection() {
                 loading="lazy"
                 onClick={() => openQuickView(product)}
               />
-              
             </div>
 
             <div className="p-3">
@@ -170,64 +142,6 @@ export default function Collection() {
           </motion.article>
         ))}
       </div>
-
-      
-      <AnimatePresence>
-        {flavorPickerOpen && pickerProduct && (
-          <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={closeFlavorPicker}
-          >
-            <motion.div
-              className="bg-white rounded-lg w-full max-w-md p-5"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 20, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-lg font-semibold">{pickerProduct.name}</h3>
-                  <div className="text-sm text-gray-500">{currency}{Number(pickerProduct.price || 0).toFixed(2)}</div>
-                </div>
-                <button className="text-gray-500" onClick={closeFlavorPicker}><FiX /></button>
-              </div>
-
-              <div className="mt-4">
-                <div className="text-sm font-medium mb-2">Choose flavor</div>
-                <div className="flex gap-2 flex-wrap">
-                  {(pickerProduct.flavor || []).map(fl => (
-                    <button
-                      key={fl}
-                      onClick={() => setPickerSelectedFlavor(fl)}
-                      className={`px-3 py-1 rounded-full border ${pickerSelectedFlavor === fl ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-700'}`}
-                    >
-                      {fl}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="mt-4 flex items-center gap-3">
-                  <button onClick={() => setPickerQty(q => Math.max(1, q - 1))} className="px-3 py-2 border rounded">-</button>
-                  <div className="px-4 py-2 border rounded min-w-[48px] text-center">{pickerQty}</div>
-                  <button onClick={() => setPickerQty(q => q + 1)} className="px-3 py-2 border rounded">+</button>
-
-                  <button
-                    onClick={confirmPickerAdd}
-                    className="ml-auto bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded"
-                    disabled={!pickerSelectedFlavor}
-                  >
-                    Add {pickerQty} to cart
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       
       <AnimatePresence>
@@ -289,6 +203,9 @@ export default function Collection() {
                     <div className="text-xl font-bold text-green-600">{currency}{Number(activeProduct.price || 0).toFixed(2)}</div>
                     <div className="text-sm text-gray-500 mt-1">Inclusive of taxes (if any)</div>
                   </div>
+                    <div className={`mt-2 font-semibold ${isOutOfStock ? 'text-red-500' : 'text-green-500'}`}>
+                        {isOutOfStock ? 'Currently Out of Stock' : `In Stock: ${maxStock}`}
+                    </div>
                 </div>
 
                 
@@ -310,21 +227,35 @@ export default function Collection() {
                 
                 <div className="mt-6 flex items-center gap-3">
                   <div className="flex items-center border rounded-md overflow-hidden">
-                    <button onClick={() => setQty(q => Math.max(1, q - 1))} className="px-3 py-2">
+                    <button 
+                        onClick={() => setQty(q => Math.max(1, q - 1))} 
+                        className={`px-3 py-2 ${qty <= 1 ? 'text-gray-400 cursor-not-allowed' : ''}`}
+                        disabled={qty <= 1}
+                    >
                       <FiMinus />
                     </button>
                     <div className="px-4 py-2 min-w-[44px] text-center">{qty}</div>
-                    <button onClick={() => setQty(q => q + 1)} className="px-3 py-2">
+                    <button 
+                        onClick={() => setQty(q => Math.min(maxStock, q + 1))} 
+                        className={`px-3 py-2 ${isMaxQuantity || isOutOfStock ? 'text-gray-400 cursor-not-allowed' : ''}`}
+                        disabled={isMaxQuantity || isOutOfStock}
+                    >
                       <FiPlus />
                     </button>
                   </div>
 
                   <button
                     onClick={confirmQuickviewAdd}
-                    className="bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded-md"
-                    disabled={!selectedFlavor}
+                    className={`
+                        px-5 py-2 rounded-md transition-all font-medium
+                        ${isOutOfStock || qty === 0 || !selectedFlavor 
+                            ? 'bg-gray-400 cursor-not-allowed text-white' 
+                            : 'bg-green-500 hover:bg-green-600 text-white'
+                        }
+                    `}
+                    disabled={isOutOfStock || qty === 0 || !selectedFlavor}
                   >
-                    Add {qty} to cart
+                    {isOutOfStock ? 'Out of Stock' : `Add ${qty} to cart`}
                   </button>
                 </div>
 
