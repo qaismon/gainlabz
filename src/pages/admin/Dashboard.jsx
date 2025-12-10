@@ -27,7 +27,8 @@ function Dashboard() {
     const orders = contextOrders || [];
 
     const { totalProducts, totalOrders, pendingOrders, totalRevenue } =
-        useMemo(() => {
+        
+    useMemo(() => {
             const totalProds = products?.length || 0;
             const totalOrds = orders.length;
 
@@ -77,7 +78,6 @@ function Dashboard() {
 
     const pieColors = ["#22c55e", "#f59e0b", "#ef4444"];
 
-    // 🚀 FIXED: Daily Revenue Chart (Instead of Monthly)
     const dailyRevenue = useMemo(() => {
         const revenueMap = {};
 
@@ -86,13 +86,11 @@ function Dashboard() {
             if (!["delivered", "completed"].includes(status)) return;
 
             const date = new Date(order.date);
-            // New Key: Day/Month/Year to get more data points
             const key = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
 
             revenueMap[key] = (revenueMap[key] || 0) + Number(order.amount || 0);
         });
 
-        // Sort by date to ensure proper trend line direction
         return Object.keys(revenueMap)
             .sort((a, b) => {
                 const partsA = a.split('/').map(Number); // [Day, Month, Year]

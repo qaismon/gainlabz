@@ -55,3 +55,40 @@ a.active hr{
 }
 
 
+
+#spotlight-container::before {
+    content: '';
+    position: absolute;
+    z-index: 0; 
+    pointer-events: none; 
+    
+    /* DYNAMIC POSITIONING: The CSS reads the variables set by React's useEffect hook */
+    top: var(--mouse-y);
+    left: var(--mouse-x);
+    
+    /* STYLING: Make it a large, soft, circular light source */
+    width: 250px;
+    height: 250px;
+    border-radius: 50%;
+    
+    /* 🟢 NEW VIBRANT GREEN GRADIENT 🟢 */
+    background: radial-gradient(
+        circle at center, 
+        /* Core: Brighter green, higher opacity for noticeable center */
+        rgba(140, 204, 13, 0.7) 0%,   
+        /* Edge: Slightly darker green, medium opacity */
+        rgba(14, 209, 14, 0.3) 50%,    
+        /* Outer edge: Transparent fade */
+        transparent 75%
+    );
+    
+    /* Soften the light */
+    filter: blur(105px); /* Slightly reduced blur (was 120px) to make the edge sharper/brighter */
+    opacity: 1.2;      /* Increased opacity (was 0.7) for overall brightness */
+    
+    /* CENTERING */
+    transform: translate(-50%, -50%);
+    
+    /* Optional: A small transition to make the movement feel slightly smoother */
+    transition: transform 0.05s ease-out; 
+}

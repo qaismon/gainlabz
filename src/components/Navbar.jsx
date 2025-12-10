@@ -22,7 +22,7 @@ const Navbar = () => {
         }`
 
     return (
-        <div className='flex items-center justify-between  font-medium z-30 relative bg-white'>
+        <div className='flex items-center justify-between  font-medium z-30 relative bg-transparent'>
             <Link to={"/"}>
                 <img 
                     src={assets.logotext} 

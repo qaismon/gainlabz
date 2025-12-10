@@ -70,13 +70,11 @@ function EditProduct() {
         let finalImageArray = [...data.image]; 
 
         try {
-            // 1. Convert NEW Image File to Base64 and append it
             if (newImageFile) {
                 const base64Image = await fileToBase64(newImageFile);
                 finalImageArray.push(base64Image);
             }
 
-            // 2. Prepare remaining data
             const flavorArray = data.flavor.split(',').map(f => f.trim()).filter(f => f.length > 0);
             
             const productToSend = {
@@ -87,7 +85,6 @@ function EditProduct() {
                 image: finalImageArray 
             };
 
-            // 3. Send update to context/server
             const result = await updateProduct(id, productToSend);
             
             if (result) {

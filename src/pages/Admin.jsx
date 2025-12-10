@@ -15,7 +15,6 @@ function Admin() {
         <div className='bg-white p-6 rounded-lg shadow-md'>
           <p>This is your administrative dashboard. Select an option from the sidebar to manage your store.</p>
         </div>
-        {/* TODO: Add detailed dashboard components */}
       </div>
     </div>
   );

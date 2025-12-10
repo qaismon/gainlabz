@@ -6,6 +6,7 @@ import OurPolicy from '../components/OurPolicy'
 import NewsletterBox from '../components/NewsletterBox'
 import { useRef } from 'react'
 import MarqueeBanner from '../components/MarqueeBanner'
+import OfferProducts from '../components/OfferProducts'
 
 function Home() {
   const bestSellerRef = useRef(null);
@@ -22,7 +23,9 @@ function Home() {
     <div>
       <Hero scrollToBestSeller={scrollToBestSeller}/>
       
+     
       <LatestCollection/>
+       <OfferProducts/>
       <BestSeller ref={bestSellerRef}/>
       <OurPolicy/>
       <NewsletterBox/>

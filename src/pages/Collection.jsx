@@ -1,405 +1,487 @@
-import React, { useContext, useEffect, useState } from 'react'
-import { ShopContext } from '../context/ShopContext'
-import { assets } from '../assets/assets'
-import Title from '../components/Title'
-import ProductItem from '../components/ProductItem'
-import { FiX, FiMinus, FiPlus } from 'react-icons/fi'
-import { toast } from 'react-toastify'
-import { motion } from 'framer-motion'
+import React, { useContext, useEffect, useState } from 'react';
+import { ShopContext } from '../context/ShopContext';
+import { assets } from '../assets/assets';
+import Title from '../components/Title';
+import ProductItem from '../components/ProductItem'; 
+import { FiX, FiMinus, FiPlus } from 'react-icons/fi';
+import { toast } from 'react-toastify';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const gridContainer = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.06
-    }
-  }
-}
+    hidden: { opacity: 0 },
+    show: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.08,
+            delayChildren: 0.06
+        }
+    }
+};
 
 const gridItem = {
-  hidden: { opacity: 0, y: 18, scale: 0.995 },
-  show: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { duration: 0.36, ease: [0.2, 0.9, 0.2, 1] }
-  },
-  exit: { opacity: 0, y: 12, transition: { duration: 0.22 } }
-}
+    hidden: { opacity: 0, y: 18, scale: 0.995 },
+    show: {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        transition: { duration: 0.36, ease: [0.2, 0.9, 0.2, 1] }
+    },
+    exit: { opacity: 0, y: 12, transition: { duration: 0.22 } }
+};
 
 function Collection() {
-  const { products = [], search, showSearch, addToCart, currency } =
-    useContext(ShopContext)
+    const { products = [], search, showSearch, addToCart, currency } =
+        useContext(ShopContext);
 
-  const [showFilter, setShowFilter] = useState(false)
-  const [filterProducts, setFilterProducts] = useState([])
-  const [category, setCategory] = useState([])
-  const [subCategory, setSubCategory] = useState([])
-  const [sortType, setSortType] = useState('relevant')
+    const [showFilter, setShowFilter] = useState(false);
+    const [filterProducts, setFilterProducts] = useState([]);
+    const [category, setCategory] = useState([]);
+    const [subCategory, setSubCategory] = useState([]);
+    const [sortType, setSortType] = useState('relevant');
+    const [showOffersOnly, setShowOffersOnly] = useState(false);
 
-  const [activeProduct, setActiveProduct] = useState(null)
-  const [selectedFlavor, setSelectedFlavor] = useState(null)
-  const [qty, setQty] = useState(1)
+    const [activeProduct, setActiveProduct] = useState(null);
+    const [selectedFlavor, setSelectedFlavor] = useState(null);
+    const [qty, setQty] = useState(1);
+    const [mainImageIndex, setMainImageIndex] = useState(0); 
 
-  function toggleCategory(e) {
-    const v = e.target.value
-    setCategory(prev =>
-      prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]
-    )
-  }
-
-  function toggleSubCategory(e) {
-    const v = e.target.value
-    setSubCategory(prev =>
-      prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]
-    )
-  }
-
-  function applyFilter() {
-    let list = [...products]
-
-    if (category.length > 0) {
-      list = list.filter(item => category.includes(item.category))
-    }
-    if (subCategory.length > 0) {
-      list = list.filter(item => subCategory.includes(item.subCategory))
-    }
-    if (showSearch && search) {
-      list = list.filter(item =>
-        (item.name || '')
-          .toLowerCase()
-          .includes((search || '').toLowerCase())
-      )
-    }
-
-    setFilterProducts(list)
-  }
-
-  function sortProduct() {
-    let sorted = [...filterProducts]
-
-    if (sortType === 'Low-High') {
-      sorted.sort((a, b) => Number(a.price) - Number(b.price))
-    } else if (sortType === 'High-Low') {
-      sorted.sort((a, b) => Number(b.price) - Number(a.price))
-    } else {
-      applyFilter()
-      return
-    }
-
-    setFilterProducts(sorted)
-  }
-
-  useEffect(applyFilter, [category, subCategory, search, showSearch, products])
-  useEffect(sortProduct, [sortType])
-
-  const openQuickView = product => {
-    const maxQty = Number(product.stock) || 0;
-    
-    setActiveProduct(product)
-    setSelectedFlavor(product.flavor?.[0] || null)
-    setQty(maxQty > 0 ? 1 : 0) 
-    document.body.style.overflow = 'hidden'
-  }
-
-  const closeQuickView = () => {
-    setActiveProduct(null)
-    setSelectedFlavor(null)
-    setQty(1)
-    document.body.style.overflow = ''
-  }
-
-  useEffect(() => {
-    const escape = e => e.key === 'Escape' && closeQuickView()
-    window.addEventListener('keydown', escape)
-    return () => window.removeEventListener('keydown', escape)
-  }, [])
-
-  const handleQuickAdd = () => {
-    if (!activeProduct || qty === 0) return
-    
-    if (qty > activeProduct.stock) {
-        toast.error(`Cannot add ${qty} items. Only ${activeProduct.stock} left in stock.`);
-        return;
+    function toggleCategory(e) {
+        const v = e.target.value;
+        setCategory(prev =>
+            prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]
+        );
     }
 
-    const flavor =
-      selectedFlavor ||
-      (Array.isArray(activeProduct.flavor)
-        ? activeProduct.flavor[0]
-        : 'Default')
+    function toggleSubCategory(e) {
+        const v = e.target.value;
+        setSubCategory(prev =>
+            prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]
+        );
+    }
 
-    for (let i = 0; i < qty; i++) {
-      addToCart(activeProduct.id, flavor)
-    }
+    // ⭐ START: UPDATED applyFilter FUNCTION ⭐
+    function applyFilter() {
+        let list = [...products];
 
-    toast.success(`${activeProduct.name} (${flavor}) x${qty} added to cart`)
-    closeQuickView()
-  }
+        // 1. Apply Search Filter
+        if (showSearch && search) {
+            list = list.filter(item =>
+                (item.name || '')
+                    .toLowerCase()
+                    .includes((search || '').toLowerCase())
+            );
+        }
 
-  const gridKey = `${filterProducts.length}-${sortType}-${category.join(
-    '|'
-  )}-${subCategory.join('|')}`
+        // 2. Apply Offer Filter (Filters the list to only sale items, if checked)
+        if (showOffersOnly) {
+            list = list.filter(item => item.onSale && item.offerPrice !== undefined && item.offerPrice !== null);
+        }
+        
+        // 3. Apply Category Filter (Filters the current list based on selected categories)
+        if (category.length > 0) {
+            list = list.filter(item => category.includes(item.category));
+        }
+
+        // 4. Apply Sub Category Filter (Filters the current list based on selected sub categories)
+        if (subCategory.length > 0) {
+            list = list.filter(item => subCategory.includes(item.subCategory));
+        }
+
+        setFilterProducts(list);
+    }
+    // ⭐ END: UPDATED applyFilter FUNCTION ⭐
+
+    function sortProduct() {
+        let sorted = [...filterProducts];
+
+        if (sortType === 'Low-High') {
+            sorted.sort((a, b) => {
+                const priceA = a.onSale && a.offerPrice !== undefined && a.offerPrice !== null ? Number(a.offerPrice) : Number(a.price);
+                const priceB = b.onSale && b.offerPrice !== undefined && b.offerPrice !== null ? Number(b.offerPrice) : Number(b.price);
+                return priceA - priceB;
+            });
+        } else if (sortType === 'High-Low') {
+            sorted.sort((a, b) => {
+                const priceA = a.onSale && a.offerPrice !== undefined && a.offerPrice !== null ? Number(a.offerPrice) : Number(a.price);
+                const priceB = b.onSale && b.offerPrice !== undefined && b.offerPrice !== null ? Number(b.offerPrice) : Number(b.price);
+                return priceB - priceA;
+            });
+        } else {
+            applyFilter(); // Recalculate based on current filters
+            return;
+        }
+
+        setFilterProducts(sorted);
+    }
+
+    useEffect(applyFilter, [category, subCategory, search, showSearch, products, showOffersOnly]); 
+    useEffect(sortProduct, [sortType, filterProducts.length]); 
+
+    const openQuickView = product => {
+        const maxQty = Number(product.stock) || 0;
+        
+        setActiveProduct(product);
+        setSelectedFlavor(product.flavor?.[0] || null);
+        setQty(maxQty > 0 ? 1 : 0); 
+        setMainImageIndex(0); 
+        document.body.style.overflow = 'hidden';
+    };
+
+    const closeQuickView = () => {
+        setActiveProduct(null);
+        setSelectedFlavor(null);
+        setQty(1);
+        setMainImageIndex(0); 
+        document.body.style.overflow = '';
+    };
+
+    useEffect(() => {
+        const escape = e => e.key === 'Escape' && closeQuickView();
+        window.addEventListener('keydown', escape);
+        return () => window.removeEventListener('keydown', escape);
+    }, []);
+
+    const handleQuickAdd = () => {
+        if (!activeProduct || qty === 0 || !selectedFlavor) {
+            toast.error("Please select a flavor and quantity.");
+            return;
+        }
+        
+        if (qty > activeProduct.stock) {
+            toast.error(`Cannot add ${qty} items. Only ${activeProduct.stock} left in stock.`);
+            return;
+        }
+
+        const flavor = selectedFlavor || 'Default';
+        const priceToUse = activeProduct.onSale && activeProduct.offerPrice !== undefined 
+            ? activeProduct.offerPrice 
+            : activeProduct.price;
+
+        for (let i = 0; i < qty; i++) {
+            addToCart(activeProduct.id, flavor, priceToUse); 
+        }
+
+        toast.success(`${activeProduct.name} (${flavor}) x${qty} added to cart`);
+        closeQuickView();
+    };
+
+    const gridKey = `${filterProducts.length}-${sortType}-${category.join(
+        '|'
+    )}-${subCategory.join('|')}-${showOffersOnly}`;
+        
+    const maxStock = activeProduct ? Number(activeProduct.stock) : 0;
+    const isOutOfStock = maxStock === 0;
+    const isMaxQuantity = qty >= maxStock;
     
-  const maxStock = activeProduct ? Number(activeProduct.stock) : 0;
-  const isOutOfStock = maxStock === 0;
-  const isMaxQuantity = qty >= maxStock;
+    const isOnSale = activeProduct?.onSale && activeProduct?.offerPrice !== undefined && activeProduct.offerPrice !== null;
+    const displayPrice = isOnSale ? activeProduct.offerPrice : activeProduct?.price;
+    const originalPrice = isOnSale ? activeProduct.price : null;
 
-  return (
-    <div className='flex flex-col sm:flex-row gap-1 sm:gap-10 pt-10'>
+    return (
+        <div className='flex flex-col sm:flex-row gap-1 sm:gap-10 pt-10'>
 
-      <div className='min-w-60'>
+            {/* Left Filter Column */}
+            <div className='min-w-60'>
 
-        <p
-          onClick={() => setShowFilter(!showFilter)}
-          className='my-2 text-xl flex items-center cursor-pointer gap-2 text-white'
-        >
-          Filters
-          <img
-            className={`h-3 mt-2 sm:hidden ${
-              showFilter ? 'rotate-180' : ''
-            }`}
-            src={assets.dropdown2_icon}
-            alt=''
-          />
-        </p>
+                <p
+                    onClick={() => setShowFilter(!showFilter)}
+                    className='my-2 text-xl flex items-center cursor-pointer gap-2 text-white'
+                >
+                    Filters
+                    <img
+                        className={`h-3 mt-2 sm:hidden ${
+                            showFilter ? 'rotate-180' : ''
+                        }`}
+                        src={assets.dropdown2_icon}
+                        alt='dropdown icon'
+                    />
+                </p>
 
-<div
-  className={`
-    pl-5 py-4 mt-6 rounded-2xl shadow-lg
-    backdrop-blur-xl bg-white/30 border border-gray-200
-    transition-all hover:bg-white/40
-    ${showFilter ? '' : 'hidden'} sm:block
-  `}
->
-  <p className='mb-3 text-sm font-medium text-gray-700'>Categories</p>
-
-  <div className='flex flex-col gap-3 text-sm font-light text-gray-700'>
-    {['Protein', 'Pre-workout', 'Creatine', 'Vitamins'].map(c => (
-      <label key={c} className='flex gap-2 items-center cursor-pointer'>
-        <input
-          type='checkbox'
-          className='w-4 h-4 accent-green-500'
-          value={c}
-          onChange={toggleCategory}
-        />
-        <span className='select-none'>{c}</span>
-      </label>
-    ))}
-  </div>
-</div>
-
-<div
-  className={`
-    pl-5 py-4 my-5 rounded-2xl shadow-lg
-    backdrop-blur-xl bg-white/30 border border-gray-200
-    transition-all hover:bg-white/40
-    ${showFilter ? '' : 'hidden'} sm:block
-  `}
->
-  <p className='mb-3 text-sm font-medium text-gray-700'>Sub Category</p>
-
-  <div className='flex flex-col gap-3 text-sm font-light text-gray-700'>
-    {['Whey', 'Casein', 'Stim', 'Non-stim'].map(s => (
-      <label key={s} className='flex gap-2 items-center cursor-pointer'>
-        <input
-          type='checkbox'
-          className='w-4 h-4 accent-green-500'
-          value={s}
-          onChange={toggleSubCategory}
-        />
-        <span className='select-none'>{s}</span>
-      </label>
-    ))}
-  </div>
-</div>
-
-      </div>
-
-      <div className='flex-1'>
-        <div className='flex justify-between items-center mb-4'>
-          <Title text1={'All'} text2={'Collections'} />
-
-          <select
-            onChange={e => setSortType(e.target.value)}
-            value={sortType}
-            className='border-2 border-gray-100 text-sm px-2 rounded-md'
-          >
-            <option value='relevant'>Sort by: Relevance</option>
-            <option value='Low-High'>Sort by: Low to High</option>
-            <option value='High-Low'>Sort by: High to Low</option>
-          </select>
-        </div>
-
-        <motion.div
-          key={gridKey}
-          variants={gridContainer}
-          initial='hidden'
-          animate='show'
-          className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 gap-y-6'
-        >
-          {filterProducts.map((item, index) => (
-            <motion.div
-              key={item.id}
-              variants={gridItem}
-              layout
-              whileHover={{ y: -6, scale: 1.02 }}
-              className='relative'
-            >
-              <ProductItem
-                name={item.name}
-                id={item.id}
-                price={item.price}
-                image={item.image}
-              />
-
-              <button
-                onClick={() => openQuickView(item)}
-                className='absolute right-2 bottom-2 bg-gray-100/80 backdrop-blur-md px-2 py-1 rounded text-xs cursor-pointer shadow'
-              >
-                Quick view
-              </button>
-            </motion.div>
-          ))}
-        </motion.div>
-      </div>
-
-      {activeProduct && (
-        <div
-          className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4'
-          onClick={closeQuickView}
-        >
-          <div
-            className='bg-white rounded-lg max-w-3xl w-full grid grid-cols-1 md:grid-cols-2 overflow-hidden'
-            onClick={e => e.stopPropagation()}
-          >
-            <div className='p-4 flex flex-col gap-3'>
-              <div className='flex-1'>
-                <img
-                  src={activeProduct.image[0]}
-                  alt=''
-                  className='w-full h-80 object-cover rounded-md'
-                />
-              </div>
-
-              <div className='flex gap-2'>
-                {activeProduct.image.slice(0, 4).map((src, i) => (
-                  <button
-                    key={i}
-                    onClick={() => {
-                      const imgs = [...activeProduct.image]
-                      const t = imgs[0]
-                      imgs[0] = imgs[i]
-                      imgs[i] = t
-                      setActiveProduct({ ...activeProduct, image: imgs })
-                    }}
-                    className='w-16 h-12 rounded overflow-hidden border'
-                  >
-                    <img
-                      src={src}
-                      className='w-full h-full object-cover'
-                      alt=''
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className='p-6 flex flex-col'>
-              <div className='flex items-start justify-between'>
-                <div>
-                  <h2 className='text-2xl font-bold'>
-                    {activeProduct.name}
-                  </h2>
-                  <p className='text-sm text-gray-500 mt-1'>
-                    {activeProduct.category}
-                  </p>
-                </div>
-                <button
-                  onClick={closeQuickView}
-                  className='text-gray-500 hover:text-gray-800'
-                >
-                  <FiX size={22} />
-                </button>
-              </div>
-
-              <p className='mt-4 text-gray-700'>
-                {activeProduct.description}
-              </p>
-
-              <div className='mt-4'>
-                <div className='text-xl font-bold text-green-600'>
-                  {currency}
-                  {Number(activeProduct.price).toFixed(2)}
-                </div>
-              </div>
-            
-              <div className={`mt-2 font-semibold ${isOutOfStock ? 'text-red-500' : 'text-green-500'}`}>
-                {isOutOfStock ? 'Currently Out of Stock' : `In Stock: ${maxStock}`}
-              </div>
-
-              <div className='mt-4'>
-                <p className='text-sm font-medium mb-2'>Choose flavor</p>
-                <div className='flex gap-2 flex-wrap'>
-                  {activeProduct.flavor?.map(fl => (
-                    <button
-                      key={fl}
-                      onClick={() => setSelectedFlavor(fl)}
-                      className={`px-3 py-1 rounded-full border ${
-                        selectedFlavor === fl
-                          ? 'bg-green-500 text-white border-green-500'
-                          : 'bg-white text-gray-700'
-                      }`}
-                    >
-                      {fl}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className='mt-6 flex items-center gap-3'>
-                <div className='flex items-center border rounded-md overflow-hidden'>
-                  <button
-                    onClick={() => setQty(q => Math.max(1, q - 1))}
-                    className={`px-3 py-2 ${qty <= 1 ? 'text-gray-400 cursor-not-allowed' : ''}`}
-                    disabled={qty <= 1}
-                  >
-                    <FiMinus />
-                  </button>
-                  <div className='px-4 py-2 min-w-[44px] text-center'>
-                    {qty}
-                  </div>
-                  <button
-                    onClick={() => setQty(q => Math.min(maxStock, q + 1))}
-                    className={`px-3 py-2 ${isMaxQuantity || isOutOfStock ? 'text-gray-400 cursor-not-allowed' : ''}`}
-                    disabled={isMaxQuantity || isOutOfStock}
-                  >
-                    <FiPlus />
-                  </button>
-                </div>
-
-                <button
-                  onClick={handleQuickAdd}
-                    disabled={isOutOfStock || qty === 0}
-                  className={`
-                        px-5 py-2 rounded-md transition-all font-medium
-                        ${isOutOfStock || qty === 0 
-                            ? 'bg-gray-400 cursor-not-allowed text-white' 
-                            : 'bg-green-500 hover:bg-green-600 text-white'
-                        }
+                {/* Offer Filter Section */}
+                <div
+                    className={`
+                        pl-5 py-4 mt-6 rounded-2xl shadow-lg
+                        backdrop-blur-xl bg-white/30 border border-gray-200
+                        transition-all hover:bg-white/40
+                        ${showFilter ? '' : 'hidden'} sm:block
                     `}
-                >
-                  {isOutOfStock ? 'Out of Stock' : `Add ${qty} to cart`}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  )
+                >
+                    <div className='flex flex-col gap-3 text-sm font-light text-gray-700'>
+                        <label className='flex gap-2 items-center cursor-pointer'>
+                            <input
+                                type='checkbox'
+                                className='w-4 h-4 accent-red-500'
+                                checked={showOffersOnly}
+                                onChange={(e) => {
+                                    setShowOffersOnly(e.target.checked);
+                                    // Removed logic that resets category/subcategory here
+                                }}
+                            />
+                            <span className='select-none font-medium'>Show Offers Only</span>
+                        </label>
+                    </div>
+                </div>
+
+                {/* Categories Filter */}
+                <div
+                    className={`
+                        pl-5 py-4 mt-6 rounded-2xl shadow-lg
+                        backdrop-blur-xl bg-white/30 border border-gray-200
+                        transition-all hover:bg-white/40
+                        ${showFilter ? '' : 'hidden'} sm:block
+                    `}
+                >
+                    <p className='mb-3 text-sm font-medium text-gray-700'>Categories</p>
+
+                    <div className='flex flex-col gap-3 text-sm font-light text-gray-700'>
+                        {['Protein', 'Pre-workout', 'Creatine', 'Vitamins'].map(c => (
+                            <label key={c} className='flex gap-2 items-center cursor-pointer'>
+                                <input
+                                    type='checkbox'
+                                    value={c}
+                                    onChange={toggleCategory}
+                                    // ⭐ Removed disabled={showOffersOnly} ⭐
+                                    checked={category.includes(c)}
+                                    // ⭐ Simplified class name ⭐
+                                    className={`w-4 h-4 accent-green-500`} 
+                                />
+                                {/* ⭐ Simplified text class ⭐ */}
+                                <span className='select-none'>{c}</span>
+                            </label>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Sub Categories Filter */}
+                <div
+                    className={`
+                        pl-5 py-4 my-5 rounded-2xl shadow-lg
+                        backdrop-blur-xl bg-white/30 border border-gray-200
+                        transition-all hover:bg-white/40
+                        ${showFilter ? '' : 'hidden'} sm:block
+                    `}
+                >
+                    <p className='mb-3 text-sm font-medium text-gray-700'>Sub Category</p>
+
+                    <div className='flex flex-col gap-3 text-sm font-light text-gray-700'>
+                        {['Whey', 'Casein', 'Stim', 'Non-stim'].map(s => (
+                            <label key={s} className='flex gap-2 items-center cursor-pointer'>
+                                <input
+                                    type='checkbox'
+                                    value={s}
+                                    onChange={toggleSubCategory}
+                                    // ⭐ Removed disabled={showOffersOnly} ⭐
+                                    checked={subCategory.includes(s)}
+                                    // ⭐ Simplified class name ⭐
+                                    className={`w-4 h-4 accent-green-500`}
+                                />
+                                {/* ⭐ Simplified text class ⭐ */}
+                                <span className='select-none'>{s}</span>
+                            </label>
+                        ))}
+                    </div>
+                </div>
+
+            </div>
+
+            {/* Right Product Grid */}
+            <div className='flex-1'>
+                <div className='flex justify-between items-center mb-4'>
+                    <Title text1={showOffersOnly ? 'Special' : 'All'} text2={showOffersOnly ? 'Offers' : 'Collections'} />
+
+                    <select
+                        onChange={e => setSortType(e.target.value)}
+                        value={sortType}
+                        className='border-2 border-gray-100 text-sm px-2 py-1 rounded-md cursor-pointer focus:outline-none focus:ring-1 focus:ring-green-500'
+                    >
+                        <option value='relevant'>Sort by: Relevance</option>
+                        <option value='Low-High'>Sort by: Price Low to High</option>
+                        <option value='High-Low'>Sort by: Price High to Low</option>
+                    </select>
+                </div>
+
+                <motion.div
+                    key={gridKey}
+                    variants={gridContainer}
+                    initial='hidden'
+                    animate='show'
+                    className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 gap-y-6'
+                >
+                    {filterProducts.map((item) => (
+                        <motion.div
+                            key={item.id}
+                            variants={gridItem}
+                            layout
+                            whileHover={{ y: -6 }} 
+                            className='relative'
+                        >
+                            <ProductItem
+                                name={item.name}
+                                id={item.id}
+                                price={item.price}
+                                offerPrice={item.offerPrice}
+                                onSale={item.onSale}
+                                image={item.image}
+                                currency={currency} 
+                            />
+
+                            <button
+                                onClick={() => openQuickView(item)}
+                                // Fixed Quick View button position
+                                className='absolute right-2 bottom-2 bg-gray-100/80 backdrop-blur-md px-2 py-1 rounded text-xs cursor-pointer shadow hover:bg-gray-200'
+                            >
+                                Quick view
+                            </button>
+                        </motion.div>
+                    ))}
+                </motion.div>
+            </div>
+
+            {/* Quick View Modal */}
+            <AnimatePresence>
+                {activeProduct && (
+                    <motion.div
+                        className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4'
+                        onClick={closeQuickView}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                    >
+                        <motion.div
+                            className='bg-white rounded-lg max-w-3xl w-full grid grid-cols-1 md:grid-cols-2 overflow-hidden'
+                            onClick={e => e.stopPropagation()}
+                            initial={{ y: 20, opacity: 0, scale: 0.98 }}
+                            animate={{ y: 0, opacity: 1, scale: 1 }}
+                            exit={{ y: 20, opacity: 0, scale: 0.98 }}
+                        >
+                            {/* Product Image Panel */}
+                            <div className='p-4 flex flex-col gap-3'>
+                                <div className='flex-1'>
+                                    <img
+                                        src={(activeProduct.image && activeProduct.image[mainImageIndex]) || "/placeholder.png"}
+                                        alt={activeProduct.name}
+                                        className='w-full h-80 object-cover rounded-md'
+                                    />
+                                </div>
+
+                                <div className='flex gap-2'>
+                                    {activeProduct.image?.slice(0, 4).map((src, i) => (
+                                        <button
+                                            key={i}
+                                            onClick={() => setMainImageIndex(i)} 
+                                            className={`w-16 h-12 rounded overflow-hidden border ${mainImageIndex === i ? 'border-green-500 ring-2 ring-green-500' : 'border-gray-200'}`}
+                                        >
+                                            <img
+                                                src={src}
+                                                className='w-full h-full object-cover'
+                                                alt={`Thumbnail ${i}`}
+                                            />
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Product Info Panel */}
+                            <div className='p-6 flex flex-col'>
+                                <div className='flex items-start justify-between'>
+                                    <div>
+                                        <h2 className='text-2xl font-bold'>
+                                            {activeProduct.name}
+                                        </h2>
+                                        <p className='text-sm text-gray-500 mt-1'>
+                                            {activeProduct.category}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={closeQuickView}
+                                        className='text-gray-500 hover:text-gray-800'
+                                    >
+                                        <FiX size={22} />
+                                    </button>
+                                </div>
+
+                                <p className='mt-4 text-gray-700 flex-1'>
+                                    {activeProduct.description}
+                                </p>
+
+                                {/* Price Alignment Fix */}
+                                <div className='mt-4 flex items-baseline gap-2'>
+                                    {originalPrice && (
+                                        <span className='text-sm text-gray-500 line-through'>
+                                            {currency}{Number(originalPrice).toFixed(2)}
+                                        </span>
+                                    )}
+                                    <div className={`text-xl font-bold ${isOnSale ? 'text-red-600' : 'text-green-600'}`}>
+                                        {currency}
+                                        {Number(displayPrice).toFixed(2)}
+                                    </div>
+                                </div>
+                            
+                                <div className={`mt-2 font-semibold ${isOutOfStock ? 'text-red-500' : 'text-green-500'}`}>
+                                    {isOutOfStock ? 'Currently Out of Stock' : `In Stock: ${maxStock}`}
+                                </div>
+
+                                <div className='mt-4'>
+                                    <p className='text-sm font-medium mb-2'>Choose flavor</p>
+                                    <div className='flex gap-2 flex-wrap'>
+                                        {activeProduct.flavor?.map(fl => (
+                                            <button
+                                                key={fl}
+                                                onClick={() => setSelectedFlavor(fl)}
+                                                className={`px-3 py-1 rounded-full border ${
+                                                    selectedFlavor === fl
+                                                        ? 'bg-green-500 text-white border-green-500'
+                                                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                                                }`}
+                                            >
+                                                {fl}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className='mt-6 flex items-center gap-3'>
+                                    <div className='flex items-center border rounded-md overflow-hidden'>
+                                        <button
+                                            onClick={() => setQty(q => Math.max(1, q - 1))}
+                                            className={`px-3 py-2 ${qty <= 1 || isOutOfStock ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700'}`}
+                                            disabled={qty <= 1 || isOutOfStock}
+                                        >
+                                            <FiMinus />
+                                        </button>
+                                        <div className='px-4 py-2 min-w-[44px] text-center'>
+                                            {qty}
+                                        </div>
+                                        <button
+                                            onClick={() => setQty(q => Math.min(maxStock, q + 1))}
+                                            className={`px-3 py-2 ${isMaxQuantity || isOutOfStock ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700'}`}
+                                            disabled={isMaxQuantity || isOutOfStock}
+                                        >
+                                            <FiPlus />
+                                        </button>
+                                    </div>
+
+                                    <button
+                                        onClick={handleQuickAdd}
+                                        disabled={isOutOfStock || qty === 0 || !selectedFlavor}
+                                        className={`
+                                            px-5 py-2 rounded-md transition-all font-medium
+                                            ${isOutOfStock || qty === 0 || !selectedFlavor
+                                                ? 'bg-gray-400 cursor-not-allowed text-white'
+                                                : 'bg-green-500 hover:bg-green-600 text-white'
+                                            }
+                                        `}
+                                    >
+                                        {isOutOfStock ? 'Out of Stock' : `Add ${qty} to cart`}
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
 }
 
-export default Collection
+export default Collection;

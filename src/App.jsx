@@ -16,6 +16,8 @@ import Footer from './components/Footer'
 import SearchBar from './components/SearchBar'
 import {ToastContainer} from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import CursorSpotlightWrapper from './components/CursorSpotlightwrapper'
+
 
 // 🔑 Admin Imports
 import AdminProtectedRoute from './components/AdminProtectedRoute'
@@ -26,13 +28,15 @@ import ListProducts from './pages/admin/ListProducts';
 import EditProduct from './pages/admin/EditProduct'
 import AdminOrders from './pages/admin/AdminOrders';
 import Users from './pages/admin/Users'
-
+import AdminOfferSetter from './pages/admin/AdminOfferSetter'
 
 
 
 const App = () => {
   return (
+    <CursorSpotlightWrapper>
     <div className='px-4 sm:px-[5vw] md:px-[7vw] lg:px-[9vw]'>
+      
       <ToastContainer 
         position="top-right"
         autoClose={500}    
@@ -71,6 +75,7 @@ const App = () => {
             <Route path="add-product" element={<AddProduct />} /> 
             <Route path="list-products" element={<ListProducts />} /> 
             <Route path="edit-product/:id" element={<EditProduct />} />
+            <Route path="offers" element={<AdminOfferSetter />} />
             <Route path="orders" element={<AdminOrders />} />  
             <Route path="users" element={<Users />} />  
 
@@ -81,6 +86,7 @@ const App = () => {
       </Routes>
       <Footer/>
     </div>
+    </CursorSpotlightWrapper>
   )
 }
 

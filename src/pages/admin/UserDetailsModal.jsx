@@ -16,7 +16,7 @@ function UserDetailsModal({ user, onClose }) {
                 {/* Header */}
                 <div className="flex justify-between items-center p-6 border-b border-gray-200">
                     <h3 className="text-2xl font-bold text-gray-900">
-                        Details for: **{user.name}**
+                        Details for: {user.name.toUpperCase()}
                     </h3>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
                         <X className="w-6 h-6" />

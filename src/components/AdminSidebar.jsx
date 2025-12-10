@@ -27,6 +27,11 @@ function AdminSidebar() {
                 List Products
             </NavLink>
             
+            <NavLink 
+    to="/admin/offers" 
+className={linkClasses}>
+    Manage Offers
+    </NavLink>
             <NavLink to="/admin/orders" className={linkClasses}>
                 Order Management
             </NavLink>
