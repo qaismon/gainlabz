@@ -1,16 +1,18 @@
 import React from 'react'
 import { assets } from '../assets/assets'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 
 function Footer() {
         const navigate=useNavigate()
 
   return (
+    
     <>
     <div className='flex flex-col sm:grid grid-cols-[3fr_1fr_1fr] gap-14 my-10 mt-20 text-sm'>
         <div>
+             <Link to={"/"}>
             <img src={assets.logotext} className='mb-5 w-32 ' alt="" />
-            <p className='w-full md:w-2/3 text-gray-600'>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Explicabo, illo quae amet error sit ullam vero quisquam blanditiis sunt adipisci, assumenda earum repellendus iste at nemo. Assumenda officiis libero perspiciatis!</p>
+            </Link>
         </div>
 
         <div>

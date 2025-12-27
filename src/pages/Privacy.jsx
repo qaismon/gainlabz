@@ -8,7 +8,7 @@ const PrivacyPolicy = () => {
 
     return (
         <div className="py-12 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
-            <h1 className="text-4xl font-extrabold text-gray-900 mb-2">Privacy Policy 🔒</h1>
+            <h1 className="text-4xl font-extrabold text-gray-900 mb-2">Privacy Policy</h1>
             <p className="text-sm text-gray-500 mb-8">Effective Date: December 1, 2025</p>
 
             <div className="bg-white p-6 sm:p-8 border border-gray-100 rounded-xl shadow-lg space-y-8">

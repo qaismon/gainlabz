@@ -1,40 +1,75 @@
 import React from 'react';
-import { Link } from 'react-router-dom'; // Assuming you use react-router-dom
+import { useNavigate } from 'react-router-dom';
+import { FiEye } from "react-icons/fi";
 
-function ProductItem({ id, name, price, offerPrice, onSale, image, currency = '$' }) {
+function ProductItem({ id, name, price, offerPrice, onSale, image, currency = '$', openQuickView, product }) {
+    const navigate = useNavigate();
 
     return (
-        <div className="bg-white rounded-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
+        <div className="group bg-white rounded-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 border border-gray-100 flex flex-col h-full">
             
-            {/* FIX: Fixed height container for consistent card sizing */}
-            <div className="relative **h-56** overflow-hidden"> 
+            {/* Image Container */}
+            <div className="relative h-48 sm:h-56 overflow-hidden bg-gray-50"> 
                 {onSale && (
-                    <span className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg z-10">
+                    <span className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg z-10">
                         SALE
                     </span>
                 )}
-                <Link to={`/product/${id}`} className="block">
+
+                {/* IMAGE: Navigates to Product Page */}
+                <div 
+                    className="relative w-full h-full cursor-pointer"
+                    onClick={() => navigate(`/product/${id}`)}
+                >
                     <img
                         src={image?.[0] || "/placeholder.png"}
                         alt={name}
-                        // FIX: w-full h-full object-cover ensures the image fills the 56 height
-                        className="w-full **h-full object-cover** transition duration-300 ease-in-out hover:scale-110"
+                        className="w-full h-full object-cover transition duration-500 ease-in-out group-hover:scale-110"
                         loading="lazy"
                     />
-                </Link>
+                </div>
+
+                {/* DESKTOP EYE ICON: Centered hover trigger (Hidden on mobile) */}
+                <div className="hidden sm:flex absolute inset-0 pointer-events-none items-center justify-center">
+                    <button 
+                        onClick={(e) => {
+                            e.stopPropagation(); 
+                            openQuickView(product);
+                        }}
+                        className="pointer-events-auto bg-white p-3 rounded-full shadow-xl text-gray-900 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 hover:bg-gray-100 hover:text-green-600"
+                    >
+                        <FiEye size={22} />
+                    </button>
+                </div>
             </div>
 
-            <div className="p-3">
-                <Link to={`/product/${id}`} className="block">
-                    {/* FIX: Truncate name to prevent multiple lines that shift other elements */}
-                    <h3 className="pt-3 pb-1 text-sm **truncate** font-semibold text-gray-800">{name}</h3>
-                </Link>
+            <div className="p-3 flex flex-col flex-grow">
+                {/* NAME & MOBILE QUICK VIEW ROW */}
+                <div className="flex items-start justify-between gap-1 pt-2">
+                    <h3 
+                        onClick={() => navigate(`/product/${id}`)}
+                        className="text-sm sm:text-base truncate font-medium text-gray-800 cursor-pointer hover:text-green-600 hover:underline flex-1"
+                    >
+                        {name}
+                    </h3>
+                    
+                    {/* MOBILE EYE ICON: Visible only on small screens */}
+                    <button 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            openQuickView(product);
+                        }}
+                        className="sm:hidden p-1.5 text-gray-500 border border-gray-200 rounded-md active:bg-gray-100 active:text-green-600"
+                        title="Quick View"
+                    >
+                        <FiEye size={18} />
+                    </button>
+                </div>
 
-                {/* FIX: Price Block uses flex-col for consistent vertical stacking */}
-                <div className="text-sm font-medium **flex flex-col** mt-1"> 
-                    {onSale && offerPrice !== undefined && offerPrice !== null ? (
+                <div className="text-sm font-medium flex flex-col mt-auto pt-1"> 
+                    {onSale && offerPrice != null ? (
                         <>
-                            <span className='text-xs text-gray-400 line-through'>
+                            <span className='text-[10px] text-gray-400 line-through leading-none'>
                                 {currency}{Number(price || 0).toFixed(2)}
                             </span>
                             <span className='text-base font-bold text-red-600'>

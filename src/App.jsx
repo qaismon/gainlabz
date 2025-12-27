@@ -29,12 +29,12 @@ import EditProduct from './pages/admin/EditProduct'
 import AdminOrders from './pages/admin/AdminOrders';
 import Users from './pages/admin/Users'
 import AdminOfferSetter from './pages/admin/AdminOfferSetter'
+import ScrollToTop from './components/ScrollToTop'
 
 
 
 const App = () => {
   return (
-    <CursorSpotlightWrapper>
     <div className='px-4 sm:px-[5vw] md:px-[7vw] lg:px-[9vw]'>
       
       <ToastContainer 
@@ -51,6 +51,7 @@ const App = () => {
       
       <Navbar/>
       <SearchBar/>
+      <ScrollToTop/>
 
 
 
@@ -69,7 +70,7 @@ const App = () => {
         <Route path='/privacy' element={<PrivacyPolicy/>}/>
         
    
-        <Route path="/admin" element={<AdminProtectedRoute />}>
+        <Route path="/admin/*" element={<AdminProtectedRoute />}>
           <Route element={<AdminLayout />}>
             <Route index element={<Dashboard />} />              
             <Route path="add-product" element={<AddProduct />} /> 
@@ -86,7 +87,6 @@ const App = () => {
       </Routes>
       <Footer/>
     </div>
-    </CursorSpotlightWrapper>
   )
 }
 
