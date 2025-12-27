@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 import confetti from "canvas-confetti";
 
 
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = "https://gain-labz-backend.onrender.com";
 
 export const ShopContext = createContext();
 
