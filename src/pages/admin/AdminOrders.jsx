@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { ShopContext } from '../../context/ShopContext';
 import { toast } from 'react-toastify';
 
-const BASE_URL = "http://localhost:8000"; 
+const BASE_URL = "https://gain-labz-backend.onrender.com"; 
 const statusOptions = ["Processing", "Shipped", "Delivered", "Cancelled"];
 
 const AdminOrders = () => {

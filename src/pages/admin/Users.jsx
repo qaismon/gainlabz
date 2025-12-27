@@ -30,7 +30,7 @@ function Users() {
 
     
     const viewUserDetails = async (userId) => {
-        const BASE_URL = "http://localhost:8000";
+        const BASE_URL = "https://gain-labz-backend.onrender.com";
         try {
             const response = await fetch(`${BASE_URL}/users/${userId}`);
             if (!response.ok) throw new Error('User details fetch failed');

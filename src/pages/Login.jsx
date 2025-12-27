@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import { ShopContext } from '../context/ShopContext';
 
 
-const BASE_URL = "http://localhost:8000"; 
+const BASE_URL = "https://gain-labz-backend.onrender.com"; 
 
 function Login() {
     const { loginUser, saveNewUser, isLoggedIn } = useContext(ShopContext);
