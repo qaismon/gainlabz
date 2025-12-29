@@ -2,7 +2,7 @@ import React from 'react'
 import { assets } from '../assets/assets'
 import { Link, useNavigate } from 'react-router'
 
-function Footer() {
+function Footer() {  
         const navigate=useNavigate()
 
   return (
