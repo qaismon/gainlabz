@@ -123,7 +123,7 @@ const QuickView = ({ product, isOpen, onClose, currency }) => {
 
                                 {product.flavor && (
                                     <motion.div variants={itemVariants} className='mt-8'>
-                                        <p className='text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3'>Select Flavor</p>
+                                        <p className='text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3'>Flavors</p>
                                         <div className='flex flex-wrap gap-2'>
                                             {product.flavor.map(f => (
                                                 <span key={f} className='px-4 py-2 border border-gray-100 bg-gray-50 text-gray-700 text-xs rounded-xl font-bold hover:border-green-500 transition-colors cursor-default'>
