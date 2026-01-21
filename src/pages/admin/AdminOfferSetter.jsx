@@ -26,7 +26,7 @@ function AdminOfferSetter() {
     };
 
     const handleSetOffer = async (product) => {
-        const newPriceInput = editPrices[product.id];
+        const newPriceInput = editPrices[product._id];
         const offerPrice = Number(newPriceInput);
         const originalPrice = Number(product.price);
 
@@ -35,14 +35,14 @@ function AdminOfferSetter() {
             return;
         }
 
-        setIsLoadingId(product.id);
+        setIsLoadingId(product._id);
         
         const offerPayload = {
             onSale: true,
             offerPrice: offerPrice
         };
 
-        const success = await updateProduct(product.id, offerPayload);
+        const success = await updateProduct(product._id, offerPayload);
 
         if (success) {
             toast.success(`Offer of ${currency}${offerPrice.toFixed(2)} set for ${product.name}.`);
@@ -189,7 +189,7 @@ function AdminOfferSetter() {
                             </tr>
                         ) : (
                             filteredAndSortedProducts.map((product) => (
-                                <tr key={product.id} className={product.onSale ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-gray-50'}>
+                                <tr key={product._id} className={product.onSale ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-gray-50'}>
                                     
                                     {/* 🛑 REMOVED whitespace-nowrap and adjusted padding/text size for smaller columns */}
                                     <td className="px-3 py-3 text-sm font-medium text-gray-900 overflow-hidden text-ellipsis">{product.name}</td>
@@ -215,10 +215,10 @@ function AdminOfferSetter() {
                                             type="number"
                                             step="0.01"
                                             placeholder="Price" // Shorter placeholder
-                                            value={editPrices[product.id] ?? ''}
-                                            onChange={(e) => handleInputChange(product.id, e.target.value)}
+                                            value={editPrices[product._id] ?? ''}
+                                            onChange={(e) => handleInputChange(product._id, e.target.value)}
                                             className="p-1 border border-gray-300 rounded-md w-24 text-xs" // Reduced width/size
-                                            disabled={isLoadingId === product.id}
+                                            disabled={isLoadingId === product._id}
                                         />
                                     </td>
                                     
@@ -227,20 +227,20 @@ function AdminOfferSetter() {
                                             <button
                                                 onClick={() => handleSetOffer(product)}
                                                 disabled={
-                                                    isLoadingId === product.id || 
-                                                    !editPrices[product.id] || 
-                                                    Number(editPrices[product.id]) <= 0 || 
-                                                    Number(editPrices[product.id]) >= Number(product.price)
+                                                    isLoadingId === product._id || 
+                                                    !editPrices[product._id] || 
+                                                    Number(editPrices[product._id]) <= 0 || 
+                                                    Number(editPrices[product._id]) >= Number(product.price)
                                                 }
                                                 className="px-2 py-1 bg-red-500 text-white text-xs font-semibold rounded-md shadow-sm hover:bg-red-600 disabled:bg-gray-400 transition"
                                             >
-                                                {isLoadingId === product.id ? '...' : 'Set'} {/* Shorter button text */}
+                                                {isLoadingId === product._id ? '...' : 'Set'} {/* Shorter button text */}
                                             </button>
 
                                             {product.onSale && (
                                                 <button
-                                                    onClick={() => handleRemoveOffer(product.id, product.name)}
-                                                    disabled={isLoadingId === product.id}
+                                                    onClick={() => handleRemoveOffer(product._id, product.name)}
+                                                    disabled={isLoadingId === product._id}
                                                     className="px-2 py-1 bg-gray-300 text-gray-700 text-xs font-semibold rounded-md shadow-sm hover:bg-gray-400 disabled:bg-gray-400 transition"
                                                 >
                                                     Remove

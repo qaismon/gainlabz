@@ -2,6 +2,7 @@ import React, { useContext, useState, useMemo } from 'react';
 import { ShopContext } from '../../context/ShopContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import API_BASE_URL from '../../services/api';
 
 function ListProducts() {
     const { products, deleteProduct, currency } = useContext(ShopContext);
@@ -10,16 +11,30 @@ function ListProducts() {
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('All');
     const [stockFilter, setStockFilter] = useState('All');
-    const [offerFilter, setOfferFilter] = useState('All'); 
+    const [offerFilter, setOfferFilter] = useState('All');
     const [sortBy, setSortBy] = useState('Name_ASC');
 
     const handleDelete = async (id, name) => {
-        if (window.confirm(`Are you sure you want to delete the product: "${name}"?`)) {
-            const success = await deleteProduct(id);
-            if (success) {
-                // Assuming deleteProduct handles success/error toasts internally or elsewhere
-            }
-        }
+        const confirmToast = toast(
+            ({ closeToast }) => (
+                <div className="p-1">
+                    <p className="text-sm font-bold mb-2">Delete "{name.slice(0, 20)}..."?</p>
+                    <div className="flex gap-2">
+                        <button 
+                            onClick={async () => {
+                                const success = await deleteProduct(id);
+                                if (success) toast.success("Deleted!");
+                                closeToast();
+                            }}
+                            className="bg-red-500 text-white px-3 py-1 rounded text-xs"
+                        >
+                            Delete
+                        </button>
+                        <button onClick={closeToast} className="bg-gray-200 px-3 py-1 rounded text-xs">Cancel</button>
+                    </div>
+                </div>
+            ), { autoClose: false }
+        );
     };
 
     const uniqueCategories = useMemo(() => {
@@ -28,25 +43,22 @@ function ListProducts() {
     }, [products]);
 
     const filteredAndSortedProducts = useMemo(() => {
-        let currentProducts = [...products]; // Use a copy of products
+        let currentProducts = [...products];
 
         if (searchTerm) {
             currentProducts = currentProducts.filter(p =>
                 p.name.toLowerCase().includes(searchTerm.toLowerCase())
             );
         }
-
         if (categoryFilter !== 'All') {
             currentProducts = currentProducts.filter(p => p.category === categoryFilter);
         }
-
         if (stockFilter !== 'All') {
             currentProducts = currentProducts.filter(p => {
                 const inStock = Number(p.stock) > 0;
                 return stockFilter === 'In Stock' ? inStock : !inStock;
             });
         }
-        
         if (offerFilter !== 'All') {
             currentProducts = currentProducts.filter(p => {
                 const onSale = Boolean(p.onSale);
@@ -58,170 +70,123 @@ function ListProducts() {
             const [field, direction] = sortBy.split('_');
             currentProducts.sort((a, b) => {
                 let valA, valB;
-
                 if (field === 'Price') {
-                    const priceA = a.onSale && a.offerPrice !== undefined && a.offerPrice !== null ? Number(a.offerPrice) : Number(a.price);
-                    const priceB = b.onSale && b.offerPrice !== undefined && b.offerPrice !== null ? Number(b.offerPrice) : Number(b.price);
-                    valA = priceA;
-                    valB = priceB;
+                    valA = a.onSale ? Number(a.offerPrice) : Number(a.price);
+                    valB = b.onSale ? Number(b.offerPrice) : Number(b.price);
                 } else {
                     valA = a.name.toLowerCase();
                     valB = b.name.toLowerCase();
                 }
-
-                if (direction === 'ASC') {
-                    return valA < valB ? -1 : valA > valB ? 1 : 0;
-                } else {
-                    return valA > valB ? -1 : valA < valB ? 1 : 0;
-                }
+                return direction === 'ASC' ? (valA < valB ? -1 : 1) : (valA > valB ? -1 : 1);
             });
         }
-
         return currentProducts;
     }, [products, searchTerm, categoryFilter, stockFilter, offerFilter, sortBy]);
 
-
     return (
-        <div className='p-4 bg-white shadow-md rounded-lg'>
-            <h2 className='text-xl font-bold mb-4'>Product List ({filteredAndSortedProducts.length} of {products.length})</h2>
-            
-            <div className="flex flex-wrap gap-2 mb-4 items-center text-sm">
+        <div className='p-6 bg-gray-50 min-h-screen'>
+            <div className='max-w-7xl mx-auto bg-white shadow-sm rounded-2xl border border-gray-100 p-6'>
                 
-                <input
-                    type="text"
-                    placeholder="Search name..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="p-1 border border-gray-300 rounded-lg w-full sm:w-auto flex-grow min-w-[150px]"
-                />
-                
-                <select
-                    value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
-                    className="p-1 border border-gray-300 rounded-lg text-xs"
-                >
-                    <option value="All">All Categories</option>
-                    {uniqueCategories.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                </select>
+                {/* Header */}
+                <div className='flex justify-between items-center mb-8'>
+                    <div>
+                        <h2 className='text-2xl font-black text-gray-800 tracking-tight'>PRODUCT INVENTORY</h2>
+                        <p className='text-sm text-gray-500 font-medium'>Showing {filteredAndSortedProducts.length} items</p>
+                    </div>
+                    <button 
+                        onClick={() => navigate('/admin/add-product')}
+                        className='bg-green-600 text-white px-5 py-2 rounded-xl font-bold text-sm hover:bg-orange-700 transition-all shadow-md active:scale-95'
+                    >
+                        + ADD NEW PRODUCT
+                    </button>
+                </div>
 
-                <select
-                    value={stockFilter}
-                    onChange={(e) => setStockFilter(e.target.value)}
-                    className="p-1 border border-gray-300 rounded-lg text-xs"
-                >
-                    <option value="All">Stock Status</option>
-                    <option value="In Stock">In Stock</option>
-                    <option value="Out of Stock">Out of Stock</option>
-                </select>
+                {/* Filters Bar */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-8 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                    <input
+                        type="text"
+                        placeholder="Search products..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none text-sm transition-all"
+                    />
+                    <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="p-2 border border-gray-200 rounded-lg text-sm outline-none">
+                        <option value="All">All Categories</option>
+                        {uniqueCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    </select>
+                    <select value={stockFilter} onChange={(e) => setStockFilter(e.target.value)} className="p-2 border border-gray-200 rounded-lg text-sm outline-none">
+                        <option value="All">Stock Status</option>
+                        <option value="In Stock">In Stock</option>
+                        <option value="Out of Stock">Out of Stock</option>
+                    </select>
+                    <select value={offerFilter} onChange={(e) => setOfferFilter(e.target.value)} className="p-2 border border-gray-200 rounded-lg text-sm outline-none">
+                        <option value="All">Offer Status</option>
+                        <option value="On Sale">On Sale</option>
+                    </select>
+                    <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="p-2 border border-gray-200 rounded-lg text-sm outline-none">
+                        <option value="Name_ASC">Sort: Name (A-Z)</option>
+                        <option value="Price_ASC">Sort: Price (L-H)</option>
+                        <option value="Price_DESC">Sort: Price (H-L)</option>
+                    </select>
+                </div>
 
-                <select
-                    value={offerFilter}
-                    onChange={(e) => setOfferFilter(e.target.value)}
-                    className="p-1 border border-gray-300 rounded-lg text-xs"
-                >
-                    <option value="All">Offer Status</option>
-                    <option value="On Sale">On Sale</option>
-                    <option value="Not On Sale">Not On Sale</option>
-                </select>
-
-                <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="p-1 border border-gray-300 rounded-lg text-xs"
-                >
-                    <option value="Name_ASC">Sort: Name (A-Z)</option>
-                    <option value="Price_ASC">Sort: Price (L-H)</option>
-                    <option value="Price_DESC">Sort: Price (H-L)</option>
-                </select>
-            </div>
-
-            {/* 🛑 Removed overflow-x-auto and ensured full width */}
-            <div> 
-                <table className="min-w-full divide-y divide-gray-200 **table-fixed**"> 
-                    <thead className="bg-gray-50">
-                        <tr>
-                            {/* Applied width classes to distribute space and reduce padding */}
-                            <th className="px-1 py-2 w-[5%] text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Img</th>
-                            <th className="px-2 py-2 w-[25%] text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                            <th className="px-2 py-2 w-[12%] text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cat.</th>
-                            <th className="px-2 py-2 w-[15%] text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price ({currency})</th>
-                            <th className="px-2 py-2 w-[8%] text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
-                            <th className="px-2 py-2 w-[10%] text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Offer</th> 
-                            <th className="px-2 py-2 w-[10%] text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bestseller</th>
-                            <th className="px-2 py-2 w-[15%] text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {filteredAndSortedProducts.length > 0 ? (
-                            filteredAndSortedProducts.map((item) => (
-                                <tr key={item.id}>
-                                    
-                                    {/* Removed whitespace-nowrap from all td's */}
-                                    <td className="px-1 py-3 text-sm">
-                                        <img 
-                                            src={item.image[0]} 
-                                            className="w-7 h-7 object-cover rounded" // Slightly smaller image
-                                        />
+                {/* Table */}
+                <div className="overflow-x-auto">
+                    <table className="min-w-full">
+                        <thead>
+                            <tr className="border-b border-gray-100 text-[11px] uppercase tracking-widest text-gray-400 font-black">
+                                <th className="px-4 py-4 text-left">Product</th>
+                                <th className="px-4 py-4 text-left">Category</th>
+                                <th className="px-4 py-4 text-left">Price</th>
+                                <th className="px-4 py-4 text-left">Stock</th>
+                                <th className="px-4 py-4 text-center">Badges</th>
+                                <th className="px-4 py-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                            {filteredAndSortedProducts.map((item) => (
+                                <tr key={item._id} className="hover:bg-gray-50/50 transition-colors group">
+                                    <td className="px-4 py-4">
+                                        <div className="flex items-center gap-4">
+                                            
+                                            <span className="font-bold text-gray-800 text-sm group-hover:text-orange-600 transition-colors">{item.name}</span>
+                                        </div>
                                     </td>
-                                    
-                                    <td className="px-2 py-3 text-sm font-medium text-gray-900 overflow-hidden text-ellipsis">{item.name}</td>
-                                    
-                                    <td className="px-2 py-3 text-sm text-gray-500">
-                                        {item.category}
+                                    <td className="px-4 py-4 text-xs font-semibold text-gray-500 uppercase">{item.category}</td>
+                                    <td className="px-4 py-4">
+                                        <div className="flex flex-col">
+                                            {item.onSale ? (
+                                                <>
+                                                    <span className="text-xs text-gray-400 line-through">{currency}{item.price.toFixed(2)}</span>
+                                                    <span className="text-sm font-bold text-green-600">{currency}{item.offerPrice.toFixed(2)}</span>
+                                                </>
+                                            ) : (
+                                                <span className="text-sm font-bold text-gray-800">{currency}{item.price.toFixed(2)}</span>
+                                            )}
+                                        </div>
                                     </td>
-                                    
-                                    <td className="px-2 py-3 text-sm text-gray-500">
-                                        <span className={item.onSale ? 'line-through text-red-400 mr-1 text-xs' : 'font-medium text-sm'}>
-                                            {currency}{Number(item.price).toFixed(2)}
-                                        </span>
-                                        {item.onSale && (
-                                            <span className="font-semibold text-green-600 text-xs">
-                                                {currency}{Number(item.offerPrice).toFixed(2)}
-                                            </span>
-                                        )}
-                                    </td>
-                                    
-                                    <td className="px-2 py-3 text-sm font-medium text-gray-900">{item.stock}</td>
-                                    
-                                    <td className="px-2 py-3 text-center text-sm">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${item.onSale ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
-                                            {item.onSale ? 'SALE' : 'No'}
+                                    <td className="px-4 py-4">
+                                        <span className={`text-xs font-bold ${item.stock <= 5 ? 'text-red-500' : 'text-gray-700'}`}>
+                                            {item.stock} <span className="font-normal text-gray-400">units</span>
                                         </span>
                                     </td>
-                                    
-                                    <td className="px-2 py-3 text-center text-sm">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${item.bestseller ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>
-                                            {item.bestseller ? 'Yes' : 'No'}
-                                        </span>
+                                    <td className="px-4 py-4">
+                                        <div className="flex justify-center gap-2">
+                                            {item.onSale && <span className="bg-red-100 text-red-600 text-[10px] px-2 py-0.5 rounded-full font-black">SALE</span>}
+                                            {item.bestseller && <span className="bg-yellow-100 text-yellow-700 text-[10px] px-2 py-0.5 rounded-full font-black">BEST</span>}
+                                        </div>
                                     </td>
-                                    
-                                    <td className="px-2 py-3 text-center text-sm font-medium flex justify-center space-x-1">
-                                        <button 
-                                            onClick={() => navigate(`/admin/edit-product/${item.id}`)}
-                                            className='text-blue-600 hover:text-blue-900 transition duration-150 text-xs'
-                                        >
-                                            Edit
-                                        </button>
-                                        <button 
-                                            onClick={() => handleDelete(item.id, item.name)}
-                                            className='text-red-600 hover:text-red-900 transition duration-150 text-xs'
-                                        >
-                                            Delete
-                                        </button>
+                                    <td className="px-4 py-4 text-right">
+                                        <div className="flex justify-end gap-3">
+                                            <button onClick={() => navigate(`/admin/edit-product/${item._id}`)} className="text-blue-500 hover:text-blue-700 font-bold text-xs uppercase">Edit</button>
+                                            <button onClick={() => handleDelete(item._id, item.name)} className="text-red-400 hover:text-red-600 font-bold text-xs uppercase">Delete</button>
+                                        </div>
                                     </td>
                                 </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan="8" className="px-3 py-3 text-center text-sm text-gray-500">
-                                    No products found matching the current criteria.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );

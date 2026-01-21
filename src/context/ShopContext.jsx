@@ -1,662 +1,398 @@
-import React, { createContext, useState, useEffect, useCallback } from "react";
-import { useNavigate } from 'react-router-dom';
-import { product_images } from "../assets/assets";
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef
+} from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import confetti from "canvas-confetti";
+import API_BASE_URL from "../services/api";
 
-
-const BASE_URL = "https://gain-labz-backend.onrender.com";
+const BASE_URL = API_BASE_URL;
 
 export const ShopContext = createContext();
 
-function ShopContextProvider(props) {
-    const navigate = useNavigate();
+function ShopContextProvider({ children }) {
+  const navigate = useNavigate();
 
-    const currency = "$";
-    const delivery_fee = 10;
+  const currency = "$";
+  const delivery_fee = 10;
 
-    const [products, setProducts] = useState([]);
+  /* ---------------- AUTH STATE ---------------- */
+  const [userToken, setUserToken] = useState(localStorage.getItem("token"));
+  const [activeUserId, setActiveUserId] = useState(localStorage.getItem("userId"));
+  const [activeUserName, setActiveUserName] = useState(localStorage.getItem("userName"));
+  const [userRole, setUserRole] = useState(localStorage.getItem("userRole"));
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
+  
+  const isAdmin = isLoggedIn && userRole === 'admin';
 
-    const [search, setSearch] = useState("");
-    const [showSearch, setShowSearch] = useState(false);
+  /* ---------------- DATA STATE ---------------- */
+  const [products, setProducts] = useState([]);
+  const [cartItems, setCartItems] = useState({});
+  const [orders, setOrders] = useState([]);
+  const [users, setUsers] = useState([]); // <-- NEW: Users state
 
-    const [activeUserId, setActiveUserId] = useState(localStorage.getItem("userId") || null);
-    const [activeUserEmail, setActiveUserEmail] = useState(localStorage.getItem("userEmail") || "");
-    const [activeUserName, setActiveUserName] = useState(localStorage.getItem("userName") || "");
-    const [userRole, setUserRole] = useState(localStorage.getItem("userRole") || "");
-    const [userToken, setUserToken] = useState(localStorage.getItem("token") || "");
-    const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
+  /* ---------------- INTERNAL FLAGS ---------------- */
+  const isFirstCartLoad = useRef(true);
 
-    const [defaultAddress, setDefaultAddress] = useState(null);
+  /* ---------------- FETCH USERS (ADMIN ONLY) ---------------- */
+  const fetchUsers = useCallback(async () => {
+    if (!userToken || !isAdmin) return;
+    try {
+      const response = await fetch(`${BASE_URL}/api/user/list`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${userToken}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setUsers(data.users);
+      } else {
+        console.error("Failed to fetch users:", data.message);
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  }, [userToken, isAdmin]);
 
-    const [cartItems, setCartItems] = useState({});
-    const [orders, setOrders] = useState([]);
+  /* ---------------- FETCH ORDERS ---------------- */
+  const fetchOrders = useCallback(async () => {
+    if (!userToken) return;
+    try {
+      const response = await fetch(`${BASE_URL}/api/orders/my-orders`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${userToken}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setOrders(data.orders);
+      }
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+    }
+  }, [userToken]);
 
-    const safeClone = (obj) => {
-        if (typeof structuredClone === 'function') return structuredClone(obj);
-        return JSON.parse(JSON.stringify(obj));
-    };
+  useEffect(() => {
+    fetchOrders();
+    if (isAdmin) fetchUsers(); // <-- Fetch users if admin logs in
+  }, [fetchOrders, fetchUsers, isAdmin]);
 
-    const fetchProducts = useCallback(async () => {
-        try {
-            const response = await fetch(`${BASE_URL}/products`);
-            if (!response.ok) throw new Error('Failed to fetch products');
+  /* ---------------- FETCH PRODUCTS ---------------- */
+  const fetchProducts = useCallback(async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/api/products`); 
+      const data = await res.json();
+      if (data.success) {
+        setProducts(data.products);
+      }
+    } catch (err) {
+      console.error("Fetch Error:", err);
+    }
+  }, []);
 
-            const rawProducts = await response.json();
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
-            const processedProducts = rawProducts.map(product => {
-                const imageURLs = (product.image || []).map(imgData => {
-                    if (typeof imgData === 'string' && imgData.startsWith('data:image')) {
-                        return imgData;
-                    } else {
-                        return product_images[imgData];
-                    }
-                });
-                return { ...product, image: imageURLs.filter(url => url) };
-            });
+  /* ---------------- LOAD USER DATA ---------------- */
+  useEffect(() => {
+    if (!userToken) return;
 
-            setProducts(processedProducts);
-        } catch (error) {
-            console.error("Error fetching products:", error);
-        }
-    }, []);
-
-    const fetchUserData = useCallback(async (userId) => {
-        if (!userId) return;
-        try {
-            const response = await fetch(`${BASE_URL}/users/${userId}`);
-            if (!response.ok) throw new Error('Failed to fetch user data');
-
-            const userData = await response.json();
-            setCartItems(userData.cart || {});
-            setOrders(userData.orders || []);
-            setDefaultAddress(userData.defaultAddress || null);
-        } catch (error) {
-            console.error("Error fetching user data:", error);
-        }
-    }, []);
-
-    const fetchAdminData = useCallback(async (userId) => {
-        try {
-            const response = await fetch(`${BASE_URL}/users`);
-            if (!response.ok) throw new Error('Failed to fetch all user data.');
-
-            const allUsers = await response.json();
-            let allOrders = [];
-
-            allUsers.forEach(user => {
-                if (Array.isArray(user.orders)) {
-                    allOrders = allOrders.concat(user.orders);
-                }
-            });
-
-            const activeAdmin = allUsers.find(user => String(user.id) === String(userId));
-
-            setOrders(allOrders);
-            setCartItems(activeAdmin?.cart || {});
-        } catch (error) {
-            console.error("Error fetching admin data:", error);
-        }
-    }, []);
-
-    const fetchAllUsers = useCallback(async () => {
-        if (userRole !== 'admin') {
-            toast.error("Unauthorized access to user list.");
-            return [];
-        }
-        try {
-            const response = await fetch(`${BASE_URL}/users`);
-            if (!response.ok) throw new Error('Failed to fetch user list');
-
-            const allUsers = await response.json();
-            return allUsers.map(user => ({
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                orderCount: user.orders ? user.orders.length : 0
-            }));
-        } catch (error) {
-            console.error("Error fetching user list:", error);
-            toast.error("Failed to load user list.");
-            return [];
-        }
-    }, [userRole]);
-
-    const syncUserData = useCallback(async (dataToSync) => {
-        if (!activeUserId) return;
-
-        try {
-            await fetch(`${BASE_URL}/users/${activeUserId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(dataToSync),
-            });
-        } catch (error) {
-            console.error("Error syncing data:", error);
-            toast.error("Could not save changes to account.");
-        }
-    }, [activeUserId]);
-
-    const updateDefaultAddress = useCallback(async (addressData) => {
-        if (!activeUserId) {
-            toast.warn("Please log in to save your address.");
-            return false;
-        }
-        try {
-            setDefaultAddress(addressData);
-
-            const res = await fetch(`${BASE_URL}/users/${activeUserId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ defaultAddress: addressData }),
-            });
-
-            if (!res.ok) throw new Error('Failed to save address');
-
-            await fetchUserData(activeUserId);
-
-            toast.success("Default address saved!");
-            return true;
-        } catch (error) {
-            console.error("Error saving default address:", error);
-            await fetchUserData(activeUserId);
-            toast.error("Failed to save default address.");
-            return false;
-        }
-    }, [activeUserId, fetchUserData]);
-
-    useEffect(() => {
-        fetchProducts();
-        const storedUserId = localStorage.getItem("userId");
-        const storedUserRole = localStorage.getItem("userRole");
-
-        if (storedUserId) {
-            setActiveUserId(storedUserId);
-
-            if (storedUserRole === 'admin') {
-                fetchAdminData(storedUserId);
-            } else {
-                fetchUserData(storedUserId);
-            }
-        }
-    }, [fetchProducts, fetchUserData, fetchAdminData]);
-
-    useEffect(() => {
-        if (isLoggedIn && activeUserId) {
-            syncUserData({ cart: cartItems });
-        }
-    }, [cartItems, isLoggedIn, activeUserId, syncUserData]);
-
-    const saveNewUser = async (email, name, password) => {
-        const newUserEntry = { name, email, password, cart: {}, orders: [], role: 'user', defaultAddress: null };
-        try {
-            const response = await fetch(`${BASE_URL}/users`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newUserEntry),
-            });
-            if (!response.ok) throw new Error('Failed to create new user account.');
-            return await response.json();
-        } catch (error) {
-            console.error("Signup error:", error);
-            toast.error("Signup failed. Please try again.");
-            return null;
-        }
-    };
-
-    const loginUser = (token, userId, email, name, role, cartData, ordersData) => {
-        localStorage.setItem("token", token);
-        localStorage.setItem("userId", userId);
-        localStorage.setItem("userEmail", email);
-        localStorage.setItem("userName", name);
-        localStorage.setItem("userRole", role);
-
-        setUserToken(token);
-        setActiveUserId(userId);
-        setActiveUserEmail(email);
-        setActiveUserName(name);
-        setUserRole(role);
-        setIsLoggedIn(true);
-
-        setCartItems(cartData || {});
-        setOrders(ordersData || []);
-
-        fetchUserData(userId);
-    };
-
-    const logoutUser = () => {
-        localStorage.clear();
-
-        setUserToken("");
-        setActiveUserId(null);
-        setActiveUserEmail("");
-        setActiveUserName("");
-        setUserRole("");
-        setIsLoggedIn(false);
-        setCartItems({});
-        setOrders([]);
-        setDefaultAddress(null);
-
-        toast.info("Logged out successfully.");
-        navigate('/');
-    };
-
-    const updateOrderStatus = async (userId, orderId, newStatus) => {
-        if (userRole !== 'admin') {
-            toast.error("Unauthorized. Only administrators can update order status.");
-            return false;
-        }
-
-        try {
-            const userResponse = await fetch(`${BASE_URL}/users/${userId}`);
-            if (!userResponse.ok) throw new Error('User not found.');
-            const userData = await userResponse.json();
-
-            const updatedOrders = (userData.orders || []).map(order => {
-                if (String(order.id) === String(orderId)) {
-                    return { ...order, status: newStatus };
-                }
-                return order;
-            });
-
-            const patchResponse = await fetch(`${BASE_URL}/users/${userId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orders: updatedOrders }),
-            });
-
-            if (!patchResponse.ok) throw new Error('Failed to update order status on server.');
-
-            await fetchAdminData(activeUserId);
-
-            toast.success(`Order #${orderId} status updated to ${newStatus}.`);
-            return true;
-        } catch (error) {
-            console.error("Error updating order status:", error);
-            toast.error("Failed to update order status.");
-            return false;
-        }
-    };
-
-    function addToCart(itemId, flavor, quantity = 1) {
-        if (!isLoggedIn) {
-            toast.warn("Please log in to add items to your cart.");
-            navigate('/login');
-            return false;
-        }
-
-        const qty = Math.max(1, Number(quantity) || 0);
-        if (qty <= 0) return false;
-
-        const productInfo = products.find(product => String(product.id) === String(itemId));
-
-        if (!productInfo) {
-            toast.error("Product not found.");
-            return false;
-        }
-        
-        const availableStock = Number(productInfo.stock) || 0;
-        const currentCartQuantity = Number(cartItems[itemId]?.[flavor]) || 0;
-        
-        const newTotalQuantity = currentCartQuantity + qty;
-
-        if (newTotalQuantity > availableStock) {
-            if (availableStock === 0) {
-                toast.error(`${productInfo.name} is currently out of stock.`);
-            } else {
-                toast.error(`Only ${availableStock} units of ${productInfo.name} are available in stock.`);
-            }
-            return false;
-        }
-
-        setCartItems(prevCart => {
-            const cartData = safeClone(prevCart || {});
-            if (!cartData[itemId]) cartData[itemId] = {};
-
-            cartData[itemId][flavor] = newTotalQuantity;
-
-            confetti({
-                particleCount: 200,
-                spread: 150,
-                startVelocity: 60,
-                origin: { y: 0.8 }
-            });
-            return cartData;
+    const loadUserData = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/api/users/me`, { 
+          headers: { Authorization: `Bearer ${userToken}` }
         });
 
-        return true;
+        if (res.ok) {
+          const data = await res.json();
+          setCartItems(data.cart || {});
+          setOrders(data.orders || []);
+        }
+      } catch (err) {
+        console.error("Failed to load user data", err);
+      } finally {
+        isFirstCartLoad.current = false;
+      }
+    };
+
+    loadUserData();
+  }, [userToken]);
+
+  /* ---------------- AUTH ACTIONS ---------------- */
+  const loginWithAPI = async (email, password) => {
+    const res = await fetch(`${BASE_URL}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Login failed");
+
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("userId", data.user.id);
+    localStorage.setItem("userName", data.user.name);
+    localStorage.setItem("userRole", data.user.role);
+
+    setUserToken(data.token);
+    setActiveUserId(data.user.id);
+    setActiveUserName(data.user.name);
+    setUserRole(data.user.role);
+    setIsLoggedIn(true);
+
+    navigate("/");
+  };
+
+  const logoutUser = () => {
+    localStorage.clear();
+    setUserToken(null);
+    setActiveUserId(null);
+    setActiveUserName("");
+    setUserRole("");
+    setIsLoggedIn(false);
+    setCartItems({});
+    setOrders([]);
+    setUsers([]); // Clear users on logout
+    isFirstCartLoad.current = true;
+    navigate("/");
+  };
+
+  const saveNewUser = async (email, name, password) => {
+    try {
+      const res = await fetch(`${BASE_URL}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, name, password })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Registration failed");
+      return data;
+    } catch (err) {
+      console.error("Sign up error:", err);
+      throw err;
     }
+  };
 
+  /* ---------------- CART ACTIONS ---------------- */
+  useEffect(() => {
+    if (!isLoggedIn || !userToken || isFirstCartLoad.current) return;
 
-    const updateQuantity = (itemId, flavor, quantity) => {
-        setCartItems(prevCart => {
-            const cartData = safeClone(prevCart || {});
-
-            if (!cartData[itemId]) cartData[itemId] = {};
-
-            const qty = Number(quantity) || 0;
-
-            if (qty <= 0) {
-                delete cartData[itemId][flavor];
-                if (Object.keys(cartData[itemId]).length === 0) {
-                    delete cartData[itemId];
-                }
-            } else {
-                cartData[itemId][flavor] = qty;
-            }
-
-            return cartData;
+    const persistCart = async () => {
+      try {
+        await fetch(`${BASE_URL}/api/users/cart`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${userToken}`
+          },
+          body: JSON.stringify({ cart: cartItems })
         });
+      } catch (err) {
+        console.error("Cart sync failed", err);
+      }
     };
+    persistCart();
+  }, [cartItems, isLoggedIn, userToken]);
 
-
-    const clearCart = () => {
-        setCartItems({});
-        if (activeUserId) {
-            syncUserData({ cart: {} });
-        }
-    };
-
-    const getCartCount = () => {
-        let totalCount = 0;
-        for (const itemId in cartItems) {
-            for (const quantity of Object.values(cartItems[itemId])) {
-                totalCount += Number(quantity) || 0;
-            }
-        }
-        return totalCount;
+  const addToCart = (productId, flavor, quantity = 1) => {
+    if (!isLoggedIn) {
+      toast.warn("Please login first");
+      navigate("/login");
+      return;
     }
+    setCartItems(prev => {
+      const updated = structuredClone(prev || {});
+      if (!updated[productId]) updated[productId] = {};
+      updated[productId][flavor] = (updated[productId][flavor] || 0) + quantity;
+      confetti({ particleCount: 150, spread: 120 });
+      return updated;
+    });
+  };
 
-    // --- UPDATED FEATURE: Use Offer Price for Cart Total Calculation ---
-    function getCartAmount() {
-        let totalAmount = 0;
-        for (const itemId in cartItems) {
-            const itemInfo = products.find((product) => String(product.id) === String(itemId));
-            if (!itemInfo) continue;
+  const updateQuantity = (productId, flavor, quantity) => {
+    setCartItems(prev => {
+      const updated = structuredClone(prev || {});
+      if (quantity <= 0) {
+        delete updated[productId]?.[flavor];
+        if (Object.keys(updated[productId] || {}).length === 0) delete updated[productId];
+      } else {
+        if (!updated[productId]) updated[productId] = {};
+        updated[productId][flavor] = quantity;
+      }
+      return updated;
+    });
+  };
 
-            // Determine the price to use: offerPrice if on sale, otherwise regular price
-            const itemPrice = (
-                itemInfo.onSale && 
-                itemInfo.offerPrice !== undefined && 
-                itemInfo.offerPrice !== null
-            )
-                ? Number(itemInfo.offerPrice) 
-                : Number(itemInfo.price);
-
-            for (const quantity of Object.values(cartItems[itemId])) {
-                const qty = Number(quantity) || 0;
-                totalAmount += (itemPrice || 0) * qty; // Use the determined itemPrice
-            }
-        }
-        return totalAmount;
-    }
-    // ------------------------------------------------------------------
-
-    const addOrder = async (orderData) => {
-        if (!activeUserId) {
-            toast.error("User not logged in. Cannot save order.");
-            return false;
-        }
-
-        try {
-            const response = await fetch(`${BASE_URL}/users/${activeUserId}`);
-            if (!response.ok) throw new Error('Failed to fetch user data for order placement');
-            const userData = await response.json();
-
-            const updatedOrders = [orderData, ...(userData.orders || [])];
-
-            const stockUpdatePromises = orderData.items.map(async (item) => {
-                const productId = item.id;
-                const quantitySold = Number(item.quantity) || 0;
-
-                const productRes = await fetch(`${BASE_URL}/products/${productId}`);
-                if (!productRes.ok) return;
-                const product = await productRes.json();
-                
-                const currentStock = Number(product.stock) || 0;
-                const newStock = Math.max(0, currentStock - quantitySold);
-
-                await fetch(`${BASE_URL}/products/${productId}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ stock: newStock }),
-                });
-            });
-
-            await Promise.all(stockUpdatePromises);
-            
-            const patchResponse = await fetch(`${BASE_URL}/users/${activeUserId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orders: updatedOrders, cart: {} }),
-            });
-
-            if (!patchResponse.ok) throw new Error('Failed to save order on server');
-
-            setOrders(updatedOrders);
-            setCartItems({});
-            
-            toast.success("Order placed successfully! Stock updated.");
-            return true;
-        } catch (error) {
-            console.error("Error adding order or reducing stock:", error);
-            toast.error("Failed to save order or update stock.");
-            return false;
-        }
-    };
-
-    const cancelOrder = async (orderId) => {
-        if (!activeUserId) {
-            toast.error("Not logged in.");
-            return false;
-        }
-
-        try {
-            const userResponse = await fetch(`${BASE_URL}/users/${activeUserId}`);
-            if (!userResponse.ok) throw new Error("Failed to fetch user");
-
-            const userData = await userResponse.json();
-            
-            const orderToCancel = (userData.orders || []).find(order => String(order.id) === String(orderId));
-
-            if (!orderToCancel || orderToCancel.status === 'Cancelled') {
-                if (orderToCancel?.status === 'Cancelled') { // Use optional chaining for safety
-                    toast.warn("Order is already cancelled.");
-                } else {
-                    toast.error("Order not found.");
-                }
-                return false;
-            }
-
-            const updatedOrders = (userData.orders || []).map(order => {
-                if (String(order.id) === String(orderId)) {
-                    return { ...order, status: "Cancelled" };
-                }
-                return order;
-            });
-
-            const stockUpdatePromises = orderToCancel.items.map(async (item) => {
-                const productId = item.id;
-                const quantityToRestore = Number(item.quantity) || 0;
-
-                const productRes = await fetch(`${BASE_URL}/products/${productId}`);
-                if (!productRes.ok) return;
-                const product = await productRes.json();
-                
-                const currentStock = Number(product.stock) || 0;
-                const newStock = currentStock + quantityToRestore;
-
-                await fetch(`${BASE_URL}/products/${productId}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ stock: newStock }),
-                });
-            });
-
-            await Promise.all(stockUpdatePromises);
-
-            const patchResponse = await fetch(`${BASE_URL}/users/${activeUserId}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ orders: updatedOrders })
-            });
-
-            if (!patchResponse.ok) throw new Error("Failed to update order status");
-
-            setOrders(updatedOrders);
-            
-            await fetchProducts(); 
-
-            toast.success("Order cancelled and stock restored successfully!");
-            return true;
-
-        } catch (error) {
-            console.error("Cancel order or stock restoration error:", error);
-            toast.error("Failed to cancel order or restore stock.");
-            return false;
-        }
-    };
-
-    const deleteProduct = async (productId) => {
-        try {
-            const response = await fetch(`${BASE_URL}/products/${productId}`, {
-                method: "DELETE",
-            });
-
-            if (!response.ok) throw new Error("Failed to delete product");
-
-            setProducts(prev => prev.filter(p => String(p.id) !== String(productId)));
-
-            toast.success("Product deleted successfully!");
-            return true;
-
-        } catch (error) {
-            console.error("Delete product error:", error);
-            toast.error("Failed to delete product.");
-            return false;
-        }
-    };
-
-    const updateProduct = async (productId, productObj) => {
-        try {
-            const response = await fetch(`${BASE_URL}/products/${productId}`, { 
-                method: 'PATCH', 
-                headers: { 
-                    'Content-Type': 'application/json' 
-                },
-                body: JSON.stringify(productObj), 
-            });
-
-            if (!response.ok) {
-                throw new Error(`Failed to update product: ${response.statusText}`);
-            }
-
-            const updatedProduct = await response.json();
-            
-            setProducts(prevProducts => 
-                prevProducts.map(product => 
-                    product.id === productId ? updatedProduct : product
-                )
-            );
-            toast.success(`Product ${productId} updated locally.`);
-            return true;
-            
-        } catch (error) {
-            console.error("Error updating product:", error);
-            toast.error("Could not save changes to server.");
-            return false;
-        }
-    };
-
-    const makeId = (prefix = 'P') => `${prefix}${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}`;
-
-    const addProduct = async (productObj) => {
-        try {
-            const id = productObj.id || makeId('prod_');
-            const productToSend = { ...productObj, id };
-
-            const res = await fetch(`${BASE_URL}/products`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(productToSend),
-            });
-
-            if (!res.ok) {
-                const text = await res.text().catch(() => '');
-                throw new Error(`Server returned ${res.status}: ${text}`);
-            }
-
-            const created = await res.json();
-
-            setProducts(prev => [created, ...prev]);
-
-            toast.success("Product added successfully!");
-            return true;
-        } catch (err) {
-            console.error("addProduct error:", err);
-            toast.error("Failed to add product. See console for details.");
-            return false;
-        }
-    };
-
-    const isAdmin = userRole === 'admin';
-
-    const makeUserAdmin = async (userId) => {
-        const token = userToken; 
-        
-        if (!token) {
-            toast.error("Admin session token is missing. Please re-login.");
-            throw new Error("Authentication token missing.");
-        }
-        
-        if (userRole !== 'admin') {
-            toast.error("Access Denied. Only Admins can promote users.");
-            throw new Error("Unauthorized: User is not an admin.");
-        }
-        
-        try {
-            const response = await fetch(`${BASE_URL}/users/${userId}`, { 
-                method: 'PATCH', 
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
-                body: JSON.stringify({ role: 'admin' }), 
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text().catch(() => response.statusText);
-                throw new Error(`Failed to update user role: ${errorText}`);
-            }
-
-            toast.success("User successfully promoted to Admin!");
-            return response.json(); 
-        } catch (error) {
-            console.error("Error making user admin:", error);
-            throw error;
-        }
-    };
-
-    const value = {
-        products, currency, delivery_fee, search, setSearch, showSearch, setShowSearch,
-        cartItems, addToCart, getCartCount, updateQuantity, getCartAmount, // <-- getCartAmount updated
-        orders, addOrder, clearCart,
-        userToken, isLoggedIn, loginUser, logoutUser, navigate,
-        activeUserId, activeUserEmail, activeUserName, saveNewUser,
-        userRole, updateOrderStatus,
-        fetchAllUsers,
-        defaultAddress,
-        updateDefaultAddress,
-        fetchUserData, cancelOrder, deleteProduct, updateProduct,
-        addProduct, isAdmin, fetchProducts, makeUserAdmin
-    };
-
-    return (
-        <ShopContext.Provider value={value}>
-            {props.children}
-        </ShopContext.Provider>
+  const getCartCount = () => {
+    return Object.values(cartItems).reduce(
+      (sum, flavors) => sum + Object.values(flavors).reduce((a, b) => a + b, 0),
+      0
     );
+  };
+
+  const getCartAmount = () => {
+    let total = 0;
+    if (!Array.isArray(products)) return 0;
+
+    for (const id in cartItems) {
+      const product = products.find(p => p._id === id);
+      if (!product) continue;
+      
+      const price = product.onSale ? Number(product.offerPrice) : Number(product.price);
+      for (const flavor in cartItems[id]) {
+        const qty = cartItems[id][flavor];
+        total += price * qty;
+      }
+    }
+    return total;
+  };
+
+  /* ---------------- ORDER ACTIONS ---------------- */
+  const placeOrder = async (deliveryData, paymentMethod, upiId = "") => {
+    try {
+      const orderItems = [];
+      for (const productId in cartItems) {
+        for (const flavor in cartItems[productId]) {
+          if (cartItems[productId][flavor] > 0) {
+            const itemInfo = products.find((p) => p._id === productId);
+            if (itemInfo) {
+              orderItems.push({
+                product: productId,
+                name: itemInfo.name,
+                flavor: flavor,
+                price: itemInfo.onSale ? itemInfo.offerPrice : itemInfo.price,
+                quantity: cartItems[productId][flavor]
+              });
+            }
+          }
+        }
+      }
+
+      const response = await fetch(`${BASE_URL}/api/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userToken}`
+        },
+        body: JSON.stringify({
+          items: orderItems,
+          amount: getCartAmount() + delivery_fee,
+          payment: paymentMethod,
+          upiId: upiId,
+          deliveryData: deliveryData
+        })
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setCartItems({});
+        toast.success("Order Placed!");
+        navigate('/orders');
+      } else {
+        toast.error(data.message || "Something went wrong");
+      }
+    } catch (err) {
+      console.error("Frontend Fetch Error:", err);
+      toast.error("Could not connect to server");
+    }
+  };
+
+  const addProduct = async (productData) => {
+      if (!userToken) {
+          toast.error("Not authorized");
+          return false;
+      }
+      try {
+          const response = await fetch(`${BASE_URL}/api/products/add`, {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${userToken}` 
+              },
+              body: JSON.stringify(productData)
+          });
+          const data = await response.json();
+          if (data.success) {
+              await fetchProducts(); 
+              return true;
+          } else {
+              toast.error(data.message);
+              return false;
+          }
+      } catch (error) {
+          console.error("Add Product Error:", error);
+          toast.error("Failed to add product");
+          return false;
+      }
+  };
+
+  const cancelOrder = async (orderId) => {
+    if (!userToken) {
+      toast.error("Please login to cancel orders");
+      return false;
+    }
+    try {
+      const response = await fetch(`${BASE_URL}/api/orders/cancel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userToken}`
+        },
+        body: JSON.stringify({ orderId })
+      });
+      const data = await response.json();
+      if (data.success) {
+        setOrders((prev) =>
+          prev.map((order) =>
+            order._id === orderId ? { ...order, status: 'Cancelled' } : order
+          )
+        );
+        return true;
+      } else {
+        toast.error(data.message);
+        return false;
+      }
+    } catch (error) {
+      console.error("Cancel Order Error:", error);
+      toast.error("Failed to cancel order");
+      return false;
+    }
+  };
+
+  return (
+    <ShopContext.Provider
+      value={{
+        products,
+        users,        // <-- Added to context
+        fetchUsers,   // <-- Added to context
+        currency,
+        delivery_fee,
+        cartItems,
+        orders,
+        isLoggedIn,
+        userRole,
+        activeUserName,
+        loginWithAPI,
+        logoutUser,
+        addToCart,
+        addProduct,
+        cancelOrder,
+        updateQuantity,
+        getCartCount,
+        getCartAmount,
+        navigate,
+        saveNewUser,
+        isAdmin,
+        placeOrder,
+        fetchOrders
+      }}
+    >
+      {children}
+    </ShopContext.Provider>
+  );
 }
 
 export default ShopContextProvider;

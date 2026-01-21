@@ -1,131 +1,92 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { ShopContext } from '../../context/ShopContext';
-import { ChevronRight, User, Package, X, Crown } from 'lucide-react'; 
-import UserDetailsModal from './UserDetailsModal';
+import { toast } from 'react-toastify';
 
 function Users() {
-    const { fetchAllUsers, userRole, makeUserAdmin } = useContext(ShopContext);
-    const [userList, setUserList] = useState([]);
-    const [selectedUser, setSelectedUser] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
-
-    const loadUsers = async () => {
-        if (userRole === 'admin') {
-            setIsLoading(true);
-            try {
-                const users = await fetchAllUsers();
-                setUserList(users);
-            } catch (error) {
-                console.error("Error loading users:", error);
-            }
-            setIsLoading(false);
-        } else {
-            setIsLoading(false);
-        }
-    };
+    const { users, fetchUsers } = useContext(ShopContext);
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
-        loadUsers();
-    }, [fetchAllUsers, userRole]);
+        if (fetchUsers) fetchUsers();
+    }, []);
 
-    
-    const viewUserDetails = async (userId) => {
-        const BASE_URL = "https://gain-labz-backend.onrender.com";
-        try {
-            const response = await fetch(`${BASE_URL}/users/${userId}`);
-            if (!response.ok) throw new Error('User details fetch failed');
-            const details = await response.json();
-            setSelectedUser(details);
-        } catch (error) {
-            console.error("Error fetching single user details:", error);
-            setSelectedUser(null);
-            alert("Failed to load user details.");
-        }
-    };
-
-    const handleMakeAdmin = async (userId, userName) => {
-        if (window.confirm(`Are you sure you want to promote ${userName} to Admin? This cannot be undone easily.`)) {
-            try {
-                await makeUserAdmin(userId);
-                await loadUsers(); 
-            } catch (error) {
-                console.error("Promotion failed in Users component:", error);
-            }
-        }
-    };
-
-    if (userRole !== 'admin') {
-        return <div className='p-8 text-red-600 font-bold'>Access Denied.</div>;
-    }
+    // Filter users by name or email
+    const filteredUsers = users.filter(user => 
+        user.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     return (
-        <div className='p-8'>
-            <h1 className='text-3xl font-bold text-gray-800 mb-6 border-b pb-2'>
-                Registered Users Management
-            </h1>
-            
-            {isLoading ? (
-                <div className='text-gray-500'>Loading users...</div>
-            ) : userList.length === 0 ? (
-                <div className='text-gray-500'>No users found.</div>
-            ) : (
-                <div className='bg-white shadow-xl rounded-xl overflow-hidden'>
-                    <table className='min-w-full divide-y divide-gray-200'>
-                        <thead className='bg-gray-50'>
-                            <tr>
-                                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Name</th>
-                                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Email</th>
-                                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Role</th>
-                                <th className='px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider'>Orders</th>
-                                <th className='px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider'>Actions</th>
+        <div className='p-6 bg-gray-50 min-h-screen'>
+            <div className='max-w-6xl mx-auto bg-white shadow-sm rounded-2xl border border-gray-100 p-6'>
+                
+                {/* Header */}
+                <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8'>
+                    <div>
+                        <h2 className='text-2xl font-black text-gray-800 tracking-tight'>USER MANAGEMENT</h2>
+                        <p className='text-sm text-gray-500 font-medium'>Manage registered customers and staff</p>
+                    </div>
+                    
+                    <div className="w-full sm:w-72">
+                        <input
+                            type="text"
+                            placeholder="Search by name or email..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full p-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none text-sm transition-all shadow-sm"
+                        />
+                    </div>
+                </div>
+
+                {/* Users Table */}
+                <div className="overflow-x-auto">
+                    <table className="min-w-full">
+                        <thead>
+                            <tr className="border-b border-gray-100 text-[11px] uppercase tracking-widest text-gray-400 font-black">
+                                <th className="px-6 py-4 text-left">User Details</th>
+                                <th className="px-6 py-4 text-left">Email</th>
+                                <th className="px-6 py-4 text-center">Join Date</th>
+                                <th className="px-6 py-4 text-right">Status</th>
                             </tr>
                         </thead>
-                        <tbody className='bg-white divide-y divide-gray-200'>
-                            {userList.map((user) => (
-                                <tr key={user.id} className='hover:bg-gray-50'>
-                                    <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 flex items-center gap-2'>
-                                        <User className='w-4 h-4 text-blue-500' /> {user.name}
-                                    </td>
-                                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{user.email}</td>
-                                    <td className='px-6 py-4 whitespace-nowrap text-sm font-semibold'>
-                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.role === 'admin' ? 'bg-indigo-100 text-indigo-800' : 'bg-green-100 text-green-800'}`}>
-                                            {user.role || 'user'}
-                                        </span>
-                                    </td>
-                                    <td className='px-6 py-4 whitespace-nowrap text-sm text-center font-semibold text-green-600'>{user.orderCount}</td>
-                                    
-                                    <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-4 items-center'>
-                                        
-                                        {(user.role !== 'admin') && (
-                                            <button
-                                                onClick={() => handleMakeAdmin(user.id, user.name)}
-                                                className='text-orange-500 hover:text-orange-700 flex items-center p-1 rounded-md border border-orange-500 hover:border-orange-700 transition'
-                                                title={`Promote ${user.name} to Admin`}
-                                            >
-                                                <Crown className='w-4 h-4 mr-1' /> Admin
-                                            </button>
-                                        )}
-
-                                        <button
-                                            onClick={() => viewUserDetails(user.id)}
-                                            className='text-indigo-600 hover:text-indigo-900 flex items-center'
-                                        >
-                                            View Details <ChevronRight className='w-4 h-4 ml-1' />
-                                        </button>
+                        <tbody className="divide-y divide-gray-50">
+                            {filteredUsers.length > 0 ? (
+                                filteredUsers.map((user) => (
+                                    <tr key={user._id} className="hover:bg-gray-50/50 transition-colors group">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-sm border border-orange-200">
+                                                    {user.name ? user.name[0].toUpperCase() : 'U'}
+                                                </div>
+                                                <span className="font-bold text-gray-800 text-sm">
+                                                    {user.name || 'Unknown User'}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-600 font-medium">
+                                            {user.email}
+                                        </td>
+                                        <td className="px-6 py-4 text-center text-xs text-gray-400 font-mono">
+                                            {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '2025-01-01'}
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <span className="bg-green-100 text-green-600 text-[10px] px-3 py-1 rounded-full font-black uppercase">
+                                                Active
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan="4" className="px-6 py-10 text-center text-gray-400 text-sm">
+                                        No users found.
                                     </td>
                                 </tr>
-                            ))}
+                            )}
                         </tbody>
                     </table>
                 </div>
-            )}
-
-            {selectedUser && (
-                <UserDetailsModal 
-                    user={selectedUser} 
-                    onClose={() => setSelectedUser(null)} 
-                />
-            )}
+            </div>
         </div>
     );
 }

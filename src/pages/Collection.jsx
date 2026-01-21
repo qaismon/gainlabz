@@ -1,11 +1,12 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState, useCallback } from 'react';
 import { ShopContext } from '../context/ShopContext';
 import { assets } from '../assets/assets';
 import Title from '../components/Title';
 import ProductItem from '../components/ProductItem'; 
-import QuickView from '../components/QuickView'; // Import the global component
-import { motion, AnimatePresence } from 'framer-motion';
+import QuickView from '../components/QuickView';
+import { motion } from 'framer-motion';
 
+// --- ANIMATION DEFINITIONS (Fixes the ReferenceError) ---
 const gridContainer = {
     hidden: { opacity: 0 },
     show: {
@@ -29,6 +30,7 @@ const gridItem = {
 };
 
 function Collection() {
+    // Safety default empty array
     const { products = [], search, showSearch, currency } = useContext(ShopContext);
 
     const [showFilter, setShowFilter] = useState(false);
@@ -37,25 +39,25 @@ function Collection() {
     const [subCategory, setSubCategory] = useState([]);
     const [sortType, setSortType] = useState('relevant');
     const [showOffersOnly, setShowOffersOnly] = useState(false);
-
-    // --- Centralized QuickView State ---
     const [quickViewProduct, setQuickViewProduct] = useState(null);
 
-    function toggleCategory(e) {
+    const toggleCategory = (e) => {
         const v = e.target.value;
-        setCategory(prev =>
-            prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]
-        );
-    }
+        setCategory(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]);
+    };
 
-    function toggleSubCategory(e) {
+    const toggleSubCategory = (e) => {
         const v = e.target.value;
-        setSubCategory(prev =>
-            prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]
-        );
-    }
+        setSubCategory(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]);
+    };
 
-    function applyFilter() {
+    const applyFilterAndSort = useCallback(() => {
+        // Strict check to ensure products is an array
+        if (!products || !Array.isArray(products)) {
+            setFilterProducts([]);
+            return;
+        }
+
         let list = [...products];
 
         if (showSearch && search) {
@@ -76,39 +78,32 @@ function Collection() {
             list = list.filter(item => subCategory.includes(item.subCategory));
         }
 
-        setFilterProducts(list);
-    }
-
-    function sortProduct() {
-        let sorted = [...filterProducts];
-
+        // Sorting
         if (sortType === 'Low-High') {
-            sorted.sort((a, b) => {
+            list.sort((a, b) => {
                 const priceA = a.onSale && a.offerPrice != null ? Number(a.offerPrice) : Number(a.price);
                 const priceB = b.onSale && b.offerPrice != null ? Number(b.offerPrice) : Number(b.price);
                 return priceA - priceB;
             });
         } else if (sortType === 'High-Low') {
-            sorted.sort((a, b) => {
+            list.sort((a, b) => {
                 const priceA = a.onSale && a.offerPrice != null ? Number(a.offerPrice) : Number(a.price);
                 const priceB = b.onSale && b.offerPrice != null ? Number(b.offerPrice) : Number(b.price);
                 return priceB - priceA;
             });
-        } else {
-            applyFilter();
-            return;
         }
-        setFilterProducts(sorted);
-    }
 
-    useEffect(applyFilter, [category, subCategory, search, showSearch, products, showOffersOnly]); 
-    useEffect(sortProduct, [sortType, filterProducts.length]); 
+        setFilterProducts(list);
+    }, [products, category, subCategory, search, showSearch, showOffersOnly, sortType]);
 
-    const gridKey = `${filterProducts.length}-${sortType}-${category.join('|')}-${subCategory.join('|')}-${showOffersOnly}`;
+    useEffect(() => {
+        applyFilterAndSort();
+    }, [applyFilterAndSort]);
+
+    const gridKey = `grid-${filterProducts.length}-${sortType}`;
 
     return (
         <div className='flex flex-col sm:flex-row gap-1 sm:gap-10 pt-10 px-4'>
-
             {/* Left Filter Column */}
             <div className='min-w-60'>
                 <p onClick={() => setShowFilter(!showFilter)} className='my-2 text-xl flex items-center cursor-pointer gap-2 text-gray-500 font-bold'>
@@ -116,7 +111,6 @@ function Collection() {
                     <img className={`h-3 sm:hidden ${showFilter ? 'rotate-180' : ''}`} src={assets.dropdown2_icon} alt='' />
                 </p>
 
-                {/* Offer Filter */}
                 <div className={`${showFilter ? '' : 'hidden'} sm:block pl-5 py-4 mt-6 rounded-2xl shadow-lg bg-white border border-gray-100`}>
                     <div className='flex flex-col gap-3 text-sm text-gray-700'>
                         <label className='flex gap-2 items-center cursor-pointer'>
@@ -126,7 +120,6 @@ function Collection() {
                     </div>
                 </div>
 
-                {/* Categories Filter */}
                 <div className={`${showFilter ? '' : 'hidden'} sm:block pl-5 py-4 mt-6 rounded-2xl shadow-lg bg-white border border-gray-100`}>
                     <p className='mb-3 text-sm font-bold text-gray-700 uppercase'>Categories</p>
                     <div className='flex flex-col gap-3 text-sm text-gray-700'>
@@ -139,7 +132,6 @@ function Collection() {
                     </div>
                 </div>
 
-                {/* Sub Categories Filter */}
                 <div className={`${showFilter ? '' : 'hidden'} sm:block pl-5 py-4 my-5 rounded-2xl shadow-lg bg-white border border-gray-100`}>
                     <p className='mb-3 text-sm font-bold text-gray-700 uppercase'>Sub Category</p>
                     <div className='flex flex-col gap-3 text-sm text-gray-700'>
@@ -166,7 +158,7 @@ function Collection() {
 
                 <motion.div key={gridKey} variants={gridContainer} initial='hidden' animate='show' className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 gap-y-8'>
                     {filterProducts.map((item) => (
-                        <motion.div key={item.id} variants={gridItem} layout className='relative'>
+                        <motion.div key={item._id} variants={gridItem} layout className='relative'>
                             <ProductItem 
                                 {...item} 
                                 currency={currency} 
@@ -176,9 +168,15 @@ function Collection() {
                         </motion.div>
                     ))}
                 </motion.div>
+
+                {filterProducts.length === 0 && (
+                    <div className="text-center py-20">
+                        <p className='text-gray-400 font-medium'>No products found in this category.</p>
+                    </div>
+                )}
             </div>
 
-            {/* SHARED QUICK VIEW COMPONENT */}
+            {/* QuickView Modal */}
             <QuickView 
                 product={quickViewProduct} 
                 isOpen={!!quickViewProduct} 

@@ -5,323 +5,185 @@ import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 
 function PlaceOrder() {
-    const {
-        getCartAmount,
-        currency,
-        delivery_fee,
-        cartItems,
-        products,
-        addOrder,
-        clearCart,
-        defaultAddress,
-        updateDefaultAddress,
-        activeUserId
-    } = useContext(ShopContext);
+    const {
+        getCartAmount,
+        currency,
+        delivery_fee,
+        placeOrder,
+        defaultAddress,
+    } = useContext(ShopContext);
 
-    const navigate = useNavigate();
+    const navigate = useNavigate();
 
-    const subtotal = getCartAmount();
-    const totalAmount = subtotal > 0 ? subtotal + delivery_fee : 0;
+    const subtotal = getCartAmount();
+    const totalAmount = subtotal > 0 ? subtotal + delivery_fee : 0;
 
-    const addressDefaultState = {
-        firstName: "", lastName: "", email: "", street: "",
-        city: "", zipcode: "", country: "", phone: ""
-    };
+    const addressDefaultState = {
+        firstName: "", lastName: "", email: "", street: "",
+        city: "", zipcode: "", country: "", phone: ""
+    };
 
-    const [data, setData] = useState(addressDefaultState);
+    const [formData, setFormData] = useState(addressDefaultState);
+    const [useSavedAddress, setUseSavedAddress] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState("");
+    const [upiId, setUpiId] = useState("");
 
-    const [useSavedAddress, setUseSavedAddress] = useState(false);
+    useEffect(() => {
+        if (defaultAddress && Object.keys(defaultAddress).length > 0) {
+            setUseSavedAddress(true);
+            setFormData(prev => ({ ...addressDefaultState, ...defaultAddress }));
+        }
+    }, [defaultAddress]);
 
-    const [saveAddress, setSaveAddress] = useState(false);
+    const onChangeHandler = (event) => {
+        const { name, value } = event.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
 
-    useEffect(() => {
-        if (defaultAddress && typeof defaultAddress === 'object') {
-            setUseSavedAddress(true);
-            setSaveAddress(false);
-            setData(prev => ({ ...addressDefaultState, ...defaultAddress }));
-        } else {
-            setUseSavedAddress(false);
-        }
-    }, [defaultAddress]);
+    const handleUseSavedToggle = (useSaved) => {
+        setUseSavedAddress(useSaved);
+        if (useSaved && defaultAddress) {
+            setFormData({ ...addressDefaultState, ...defaultAddress });
+        } else {
+            setFormData(addressDefaultState);
+        }
+    };
 
-    const onChangeHandler = (event) => {
-        const name = event.target.name;
-        const value = event.target.value;
-        setData(prevData => ({ ...prevData, [name]: value }));
-    };
+    const onSubmitHandler = async (event) => {
+        event.preventDefault();
+        if (subtotal === 0) {
+            toast.error("Your cart is empty.");
+            return;
+        }
+        if (!paymentMethod) {
+            toast.error("Please select a payment method.");
+            return;
+        }
+        await placeOrder(formData, paymentMethod, upiId);
+    };
 
-    const handleUseSavedToggle = (useSaved) => {
-        setUseSavedAddress(useSaved);
-        if (useSaved && defaultAddress) {
-            setData(prev => ({ ...addressDefaultState, ...defaultAddress }));
-            setSaveAddress(false);
-        } else {
-            setData(addressDefaultState);
-            setSaveAddress(false);
-        }
-    };
+    if (subtotal === 0) {
+        return (
+            <div className='py-32 text-center animate-fadeIn'>
+                <Title text1={"Your"} text2={"Cart is Empty"} />
+                <p className='text-gray-500 mt-2'>Add some items to your cart to continue</p>
+                <button onClick={() => navigate('/')} className='bg-black text-white px-10 py-3 mt-6 hover:bg-gray-800 transition-all rounded-sm shadow-md'>
+                    GO SHOPPING
+                </button>
+            </div>
+        );
+    }
 
-    const [paymentMethod, setPaymentMethod] = useState("");
-    const [upiId, setUpiId] = useState("");
+    return (
+        <form onSubmit={onSubmitHandler} className='flex flex-col py-10 gap-8 max-w-[1200px] mx-auto px-4 lg:px-10 bg-gray-50/50'>
+            <div className='flex flex-col lg:flex-row gap-12'>
 
-    const placeOrder = async (event) => {
-        event.preventDefault();
+                {/* Left Side: Delivery Info */}
+                <div className='w-full lg:w-[60%] bg-white p-6 md:p-10 rounded-xl border border-gray-100 shadow-sm'>
+                    <div className='mb-8'>
+                        <Title text1={"DELIVERY"} text2={"INFORMATION"} />
+                    </div>
 
-        if (subtotal === 0) {
-            toast.error("Your cart is empty. Please add items before placing an order.");
-            return;
-        }
+                    {defaultAddress && (
+                        <div className='mb-8 flex gap-6 p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300'>
+                            <label className='flex items-center gap-2 cursor-pointer group'>
+                                <input type='radio' name='addrMode' className='accent-orange-500 w-4 h-4' checked={useSavedAddress} onChange={() => handleUseSavedToggle(true)} />
+                                <span className={`text-sm font-semibold ${useSavedAddress ? 'text-orange-600' : 'text-gray-600'}`}>Use saved address</span>
+                            </label>
+                            <label className='flex items-center gap-2 cursor-pointer group'>
+                                <input type='radio' name='addrMode' className='accent-orange-500 w-4 h-4' checked={!useSavedAddress} onChange={() => handleUseSavedToggle(false)} />
+                                <span className={`text-sm font-semibold ${!useSavedAddress ? 'text-orange-600' : 'text-gray-600'}`}>New address</span>
+                            </label>
+                        </div>
+                    )}
 
-        if (!paymentMethod) {
-            toast.error("Please select a payment method.");
-            return;
-        }
+                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                        <input required type="text" name='firstName' onChange={onChangeHandler} value={formData.firstName} placeholder='First name' className='w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-100 focus:border-orange-500 outline-none transition-all' disabled={useSavedAddress} />
+                        <input required type="text" name='lastName' onChange={onChangeHandler} value={formData.lastName} placeholder='Last name' className='w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-100 focus:border-orange-500 outline-none transition-all' disabled={useSavedAddress} />
+                        <input required type="email" name='email' onChange={onChangeHandler} value={formData.email} placeholder='Email address' className='md:col-span-2 w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-100 focus:border-orange-500 outline-none transition-all' disabled={useSavedAddress} />
+                        <input required type="text" name='street' onChange={onChangeHandler} value={formData.street} placeholder='Street & House Number' className='md:col-span-2 w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-100 focus:border-orange-500 outline-none transition-all' disabled={useSavedAddress} />
+                        <input required type="text" name='city' onChange={onChangeHandler} value={formData.city} placeholder='City' className='w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-100 focus:border-orange-500 outline-none transition-all' disabled={useSavedAddress} />
+                        <input required type="text" name='zipcode' onChange={onChangeHandler} value={formData.zipcode} placeholder='Zip code' className='w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-100 focus:border-orange-500 outline-none transition-all' disabled={useSavedAddress} />
+                        <input required type="text" name='country' onChange={onChangeHandler} value={formData.country} placeholder='Country' className='w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-100 focus:border-orange-500 outline-none transition-all' disabled={useSavedAddress} />
+                        <input required type="text" name='phone' onChange={onChangeHandler} value={formData.phone} placeholder='Phone Number' className='w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-100 focus:border-orange-500 outline-none transition-all' disabled={useSavedAddress} />
+                    </div>
+                </div>
 
-        if (paymentMethod === 'UPI' && !upiId.trim()) {
-            toast.error("Please enter your UPI ID.");
-            return;
-        }
+                {/* Right Side: Totals & Payment */}
+                <div className='w-full lg:w-[40%] space-y-8'>
+                    
+                    {/* Cart Totals Card */}
+                    <div className='bg-white p-8 rounded-xl border border-gray-100 shadow-sm'>
+                        <Title text1={"ORDER"} text2={"SUMMARY"} />
+                        <div className='mt-6 space-y-4'>
+                            <div className='flex justify-between text-gray-600'>
+                                <span>Subtotal</span>
+                                <span>{currency}{subtotal.toFixed(2)}</span>
+                            </div>
+                            <div className='flex justify-between text-gray-600'>
+                                <span>Delivery Fee</span>
+                                <span>{currency}{delivery_fee.toFixed(2)}</span>
+                            </div>
+                            <div className='h-[1px] bg-gray-100 w-full my-2'></div>
+                            <div className='flex justify-between text-xl font-bold text-gray-800'>
+                                <h2>Total</h2>
+                                <h2>{currency}{totalAmount.toFixed(2)}</h2>
+                            </div>
+                        </div>
+                    </div>
 
-        const requiredFields = ['firstName', 'lastName', 'email', 'street', 'city', 'zipcode', 'country', 'phone'];
-        const isValid = requiredFields.every(field => data[field] && data[field].toString().trim() !== '');
+                    {/* Payment Method Card */}
+                    <div className='bg-white p-8 rounded-xl border border-gray-100 shadow-sm'>
+                        <Title text1={'PAYMENT'} text2={'METHOD'} />
+                        <div className='flex flex-col gap-4 mt-6'>
+                            <div 
+                                onClick={() => setPaymentMethod('COD')} 
+                                className={`flex items-center justify-between p-4 border rounded-xl cursor-pointer transition-all ${paymentMethod === 'COD' ? 'border-orange-500 bg-orange-50 ring-1 ring-orange-500' : 'border-gray-200 hover:border-gray-300'}`}
+                            >
+                                <div className='flex items-center gap-3'>
+                                    <div className={`w-5 h-5 border-2 rounded-full flex items-center justify-center ${paymentMethod === 'COD' ? 'border-orange-500' : 'border-gray-300'}`}>
+                                        {paymentMethod === 'COD' && <div className='w-2.5 h-2.5 bg-orange-500 rounded-full'></div>}
+                                    </div>
+                                    <span className='font-medium text-gray-700 uppercase text-sm tracking-wider'>Cash on Delivery</span>
+                                </div>
+                            </div>
 
-        if (!isValid) {
-            toast.error("Please fill in all delivery information fields.");
-            return;
-        }
+                            <div 
+                                onClick={() => setPaymentMethod('UPI')} 
+                                className={`flex items-center justify-between p-4 border rounded-xl cursor-pointer transition-all ${paymentMethod === 'UPI' ? 'border-orange-500 bg-orange-50 ring-1 ring-orange-500' : 'border-gray-200 hover:border-gray-300'}`}
+                            >
+                                <div className='flex items-center gap-3'>
+                                    <div className={`w-5 h-5 border-2 rounded-full flex items-center justify-center ${paymentMethod === 'UPI' ? 'border-orange-500' : 'border-gray-300'}`}>
+                                        {paymentMethod === 'UPI' && <div className='w-2.5 h-2.5 bg-orange-500 rounded-full'></div>}
+                                    </div>
+                                    <span className='font-medium text-gray-700 uppercase text-sm tracking-wider'>UPI / Online</span>
+                                </div>
+                            </div>
+                        </div>
 
-        const orderItems = [];
-        for (const itemId in cartItems) {
-            const product = products.find(p => String(p.id) === String(itemId));
-            if (!product) continue;
+                        {paymentMethod === 'UPI' && (
+                            <div className='mt-4 animate-fadeIn'>
+                                <input
+                                    type="text"
+                                    placeholder="yourname@upi"
+                                    value={upiId}
+                                    onChange={(e) => setUpiId(e.target.value)}
+                                    className='w-full p-4 border border-orange-200 rounded-xl focus:ring-2 focus:ring-orange-100 outline-none bg-white font-medium'
+                                    required
+                                />
+                                <p className='text-[10px] text-gray-400 mt-2 px-1'>Enter your valid UPI ID to proceed with online payment.</p>
+                            </div>
+                        )}
 
-            for (const flavor in cartItems[itemId]) {
-                const quantity = Number(cartItems[itemId][flavor]) || 0;
-                if (quantity > 0) {
-                    orderItems.push({
-                        id: itemId,
-                        name: product.name,
-                        flavor: flavor,
-                        price: Number(product.price) || 0,
-                        quantity: quantity
-                    });
-                }
-            }
-        }
-
-        if (orderItems.length === 0) {
-            toast.error("No valid items found in the cart.");
-            return;
-        }
-
-        const newOrder = {
-            id: `ORD${Date.now()}`,
-            items: orderItems,
-            amount: Number(totalAmount) || 0,
-            status: 'Processing',
-            date: new Date().toISOString().split('T')[0],
-            payment: paymentMethod,
-            deliveryData: data,
-            upiId: paymentMethod === 'UPI' ? upiId : null
-        };
-
-        try {
-            if (!useSavedAddress && saveAddress && activeUserId) {
-                await updateDefaultAddress(data);
-            }
-
-            if (useSavedAddress && defaultAddress && (!data || !data.street)) {
-                setData(prev => ({ ...addressDefaultState, ...defaultAddress }));
-            }
-
-            const success = await addOrder(newOrder);
-
-            if (success) {
-                clearCart();
-                toast.success(`Order placed via ${paymentMethod === 'COD' ? 'Cash on Delivery' : 'UPI'}!`);
-                navigate('/orders');
-            } else {
-                toast.error("Order could not be placed. Please try again.");
-            }
-        } catch (err) {
-            console.error("Place order error:", err);
-            toast.error("An unexpected error occurred while placing the order.");
-        }
-    };
-
-    if (subtotal === 0) {
-        return (
-            <div className='py-20 text-center'>
-                <Title text1={"Your"} text2={"Cart is Empty"} />
-                <p className='text-gray-500 mt-4'>Add some delicious items to place an order!</p>
-            </div>
-        );
-    }
-
-    return (
-        <form onSubmit={placeOrder} className='flex flex-col py-14 gap-10 md:gap-20 max-w-[1200px] mx-auto px-4 md:px-0'>
-            <div className='flex flex-col sm:flex-row gap-10 md:gap-20'>
-
-                <div className='w-full sm:w-3/5'>
-                    <Title text1={"Delivery"} text2={"Information"} />
-
-                    {defaultAddress ? (
-                        <div className='mt-4 flex gap-4 items-center'>
-                            <label className='flex items-center gap-2 cursor-pointer'>
-                                <input
-                                    type='radio'
-                                    name='addrMode'
-                                    checked={useSavedAddress === true}
-                                    onChange={() => handleUseSavedToggle(true)}
-                                    className='h-4 w-4'
-                                />
-                                <span className='text-sm'>Use saved default address</span>
-                            </label>
-
-                            <label className='flex items-center gap-2 cursor-pointer'>
-                                <input
-                                    type='radio'
-                                    name='addrMode'
-                                    checked={useSavedAddress === false}
-                                    onChange={() => handleUseSavedToggle(false)}
-                                    className='h-4 w-4'
-                                />
-                                <span className='text-sm'>Enter a new address</span>
-                            </label>
-                        </div>
-                    ) : null}
-
-                    <div className='flex flex-col gap-4 mt-6'>
-                        <div className='flex gap-4'>
-                            <input required type="text" name='firstName' onChange={onChangeHandler} value={data.firstName} placeholder='First name' className='p-3 border rounded-md flex-1 focus:outline-none focus:ring-2 focus:ring-orange-500' disabled={useSavedAddress} />
-                            <input required type="text" name='lastName' onChange={onChangeHandler} value={data.lastName} placeholder='Last name' className='p-3 border rounded-md flex-1 focus:outline-none focus:ring-2 focus:ring-orange-500' disabled={useSavedAddress} />
-                        </div>
-
-                        <input required type="email" name='email' onChange={onChangeHandler} value={data.email} placeholder='Email address' className='p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500' disabled={useSavedAddress} />
-                        <input required type="text" name='street' onChange={onChangeHandler} value={data.street} placeholder='Street' className='p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500' disabled={useSavedAddress} />
-
-                        <div className='flex gap-4'>
-                            <input required type="text" name='city' onChange={onChangeHandler} value={data.city} placeholder='City' className='p-3 border rounded-md flex-1 focus:outline-none focus:ring-2 focus:ring-orange-500' disabled={useSavedAddress} />
-                            <input required type="text" name='zipcode' onChange={onChangeHandler} value={data.zipcode} placeholder='Zip code' className='p-3 border rounded-md flex-1 focus:outline-none focus:ring-2 focus:ring-orange-500' disabled={useSavedAddress} />
-                        </div>
-                        <input required type="text" name='country' onChange={onChangeHandler} value={data.country} placeholder='Country' className='p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500' disabled={useSavedAddress} />
-                        <input required type="text" name='phone' onChange={onChangeHandler} value={data.phone} placeholder='Phone' className='p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500' disabled={useSavedAddress} />
-
-                        {!useSavedAddress && activeUserId && (
-                            <div className='flex items-center mt-2'>
-                                <input
-                                    type='checkbox'
-                                    id='saveAddress'
-                                    checked={saveAddress}
-                                    onChange={(e) => setSaveAddress(e.target.checked)}
-                                    className='h-4 w-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500'
-                                />
-                                <label htmlFor='saveAddress' className='ml-2 text-sm font-medium text-gray-700'>
-                                    Save this address as default for future orders
-                                </label>
-                            </div>
-                        )}
-
-                        {useSavedAddress && defaultAddress && (
-                            <div className='mt-3 p-3 border rounded-md bg-gray-50 text-sm text-gray-700'>
-                                <div className='font-medium'>Using saved address:</div>
-                                <div>{defaultAddress.firstName} {defaultAddress.lastName}</div>
-                                <div>{defaultAddress.street}, {defaultAddress.city} {defaultAddress.zipcode}</div>
-                                <div>{defaultAddress.country} • {defaultAddress.phone}</div>
-                                <div className='text-xs text-gray-500 mt-1'>You can choose "Enter a new address" to modify it for this order.</div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                <div className='w-full sm:w-2/5 flex flex-col gap-8'>
-                    <div>
-                        <Title text1={"Cart"} text2={"Totals"} />
-                        <div className='mt-6 p-6 border rounded-md bg-gray-50'>
-                            <div className='flex justify-between py-2 border-b border-gray-300'>
-                                <p className='text-gray-700'>Subtotal</p>
-                                <p className='font-medium'>{currency}{(Number(subtotal) || 0).toFixed(2)}</p>
-                            </div>
-                            <div className='flex justify-between py-2 border-b border-gray-300'>
-                                <p className='text-gray-700'>Delivery Fee</p>
-                                <p className='font-medium'>{currency}{(Number(delivery_fee) || 0).toFixed(2)}</p>
-                            </div>
-                            <div className='flex justify-between py-4 text-xl font-bold'>
-                                <h2>Total</h2>
-                                <h2>{currency}{(Number(totalAmount) || 0).toFixed(2)}</h2>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <Title text1={"Payment"} text2={"Method"} />
-                        <div className='mt-6 p-6 border rounded-md bg-white shadow-sm'>
-                            <h4 className='font-semibold text-gray-700 mb-4'>Choose Payment Option:</h4>
-
-                            <div
-                                className='flex items-center gap-3 py-2 cursor-pointer'
-                                onClick={() => {
-                                    setPaymentMethod('COD');
-                                    setUpiId('');
-                                }}
-                            >
-                                <input
-                                    type="radio"
-                                    name="payment"
-                                    value="COD"
-                                    checked={paymentMethod === 'COD'}
-                                    onChange={() => {
-                                        setPaymentMethod('COD');
-                                        setUpiId('');
-                                    }}
-                                    className='h-4 w-4 text-orange-500 focus:ring-orange-500 border-gray-300'
-                                />
-                                <label className='text-gray-700 font-medium'>Cash on Delivery (COD)</label>
-                            </div>
-
-                            <div
-                                className='flex items-center gap-3 py-2 mt-2 cursor-pointer'
-                                onClick={() => setPaymentMethod('UPI')}
-                            >
-                                <input
-                                    type="radio"
-                                    name="payment"
-                                    value="UPI"
-                                    checked={paymentMethod === 'UPI'}
-                                    onChange={() => setPaymentMethod('UPI')}
-                                    className='h-4 w-4 text-orange-500 focus:ring-orange-500 border-gray-300'
-                                />
-                                <label className='text-gray-700 font-medium'>UPI / Online Payment</label>
-                            </div>
-
-                            {paymentMethod === 'UPI' && (
-                                <div className='mt-4 pt-4 border-t'>
-                                    <input
-                                        type="text"
-                                        placeholder="Enter your UPI ID (e.g., username@bank)"
-                                        value={upiId}
-                                        onChange={(e) => setUpiId(e.target.value)}
-                                        required
-                                        className='w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                                    />
-                                </div>
-                            )}
-
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className='w-full sm:w-2/5 mx-auto sm:mx-0'>
-                <button
-                    type='submit'
-                    className='w-full bg-orange-500 text-white p-3 rounded-md hover:bg-orange-600 transition duration-200 mt-4 font-semibold'
-                >
-                    PROCEED TO PAYMENT ({currency}{(Number(totalAmount) || 0).toFixed(2)})
-                </button>
-            </div>
-        </form>
-    );
+                        <button type='submit' className='w-full bg-orange-500 text-white mt-10 py-4 rounded-xl font-bold tracking-widest hover:bg-orange-600 active:scale-[0.98] transition-all shadow-lg shadow-orange-200'>
+                            CONFIRM & PLACE ORDER
+                        </button>
+                        <p className='text-center text-xs text-gray-400 mt-4 italic'>Safe and secure checkout</p>
+                    </div>
+                </div>
+            </div>
+        </form>
+    );
 }
 
 export default PlaceOrder;
