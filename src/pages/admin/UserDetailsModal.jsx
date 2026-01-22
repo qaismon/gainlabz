@@ -4,7 +4,6 @@ import { Package, X, Clock, DollarSign, MapPin, Mail, Phone } from 'lucide-react
 function UserDetailsModal({ user, onClose }) {
     if (!user) return null;
 
-    // Calculate total spent across all orders
     const totalSpent = user.orders 
         ? user.orders.reduce((sum, order) => sum + order.amount, 0).toFixed(2)
         : '0.00';
@@ -27,7 +26,6 @@ function UserDetailsModal({ user, onClose }) {
                 <div className="p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         
-                        {/* 1. Account Info Card */}
                         <div className="bg-blue-50 p-4 rounded-lg">
                             <h4 className="font-semibold text-lg mb-3 text-blue-800 border-b pb-1">Account Info</h4>
                             <p className="flex items-center gap-2 mb-1">
@@ -45,7 +43,6 @@ function UserDetailsModal({ user, onClose }) {
                             </p>
                         </div>
                         
-                        {/* 2. Default Address Info Card (NEWLY ADDED SECTION) */}
                         <div className="bg-gray-50 p-4 rounded-lg">
                             <h4 className="font-semibold text-lg mb-3 text-gray-800 border-b pb-1 flex items-center gap-2">
                                 <MapPin className='w-5 h-5 text-red-500'/> Default Address
@@ -67,7 +64,6 @@ function UserDetailsModal({ user, onClose }) {
                         </div>
                     </div>
 
-                    {/* Order Details Table */}
                     <h4 className="font-bold text-xl mb-4 pt-4 border-t flex items-center gap-2">
                         <Package className='w-5 h-5 text-green-600'/> Order History
                     </h4>

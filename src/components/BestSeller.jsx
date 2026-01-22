@@ -7,12 +7,10 @@ import Title from "./Title";
 import QuickView from "./QuickView";
 import API_BASE_URL from "../services/api";
 
-/* ---------------- IMAGE URL HELPER ---------------- */
 const getImageUrl = (src) => {
   if (!src) return "/placeholder.png";
   if (src.startsWith("http")) return src;
 
-  // remove /api for static uploads
   const BASE_DOMAIN = API_BASE_URL.replace("/api", "");
   return `${BASE_DOMAIN}/${src}`;
 };
@@ -40,7 +38,6 @@ const BestSeller = forwardRef((props, ref) => {
       {/* PRODUCT GRID */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 gap-y-6">
         {bestSeller.map(product => {
-          // 🔥 Normalize image (array OR string)
           const imageSrc = Array.isArray(product.image)
             ? product.image[0]
             : product.image;

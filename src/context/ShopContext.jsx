@@ -29,22 +29,20 @@ function ShopContextProvider({ children }) {
   
   const isAdmin = isLoggedIn && userRole === 'admin';
 
-  /* ---------------- DATA STATE ---------------- */
   const [products, setProducts] = useState([]);
   const [cartItems, setCartItems] = useState({});
   const [orders, setOrders] = useState([]);
-  const [users, setUsers] = useState([]); // <-- NEW: Users state
+  const [users, setUsers] = useState([]); 
 
-  /* ---------------- INTERNAL FLAGS ---------------- */
   const isFirstCartLoad = useRef(true);
 
-  /* ---------------- FETCH USERS (ADMIN ONLY) ---------------- */
   const fetchUsers = useCallback(async () => {
     if (!userToken || !isAdmin) return;
     try {
       const response = await fetch(`${BASE_URL}/api/user/list`, {
         method: 'GET',
-        headers: { Authorization: `Bearer ${userToken}` }
+        headers: { 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userToken}`}
       });
       const data = await response.json();
       if (data.success) {
@@ -76,10 +74,9 @@ function ShopContextProvider({ children }) {
 
   useEffect(() => {
     fetchOrders();
-    if (isAdmin) fetchUsers(); // <-- Fetch users if admin logs in
+    if (isAdmin) fetchUsers(); 
   }, [fetchOrders, fetchUsers, isAdmin]);
 
-  /* ---------------- FETCH PRODUCTS ---------------- */
   const fetchProducts = useCallback(async () => {
     try {
       const res = await fetch(`${BASE_URL}/api/products`); 
@@ -96,7 +93,8 @@ function ShopContextProvider({ children }) {
     fetchProducts();
   }, [fetchProducts]);
 
-  /* ---------------- LOAD USER DATA ---------------- */
+
+
   useEffect(() => {
     if (!userToken) return;
 
@@ -121,7 +119,6 @@ function ShopContextProvider({ children }) {
     loadUserData();
   }, [userToken]);
 
-  /* ---------------- AUTH ACTIONS ---------------- */
   const loginWithAPI = async (email, password) => {
     const res = await fetch(`${BASE_URL}/api/auth/login`, {
       method: "POST",
@@ -155,7 +152,7 @@ function ShopContextProvider({ children }) {
     setIsLoggedIn(false);
     setCartItems({});
     setOrders([]);
-    setUsers([]); // Clear users on logout
+    setUsers([]);
     isFirstCartLoad.current = true;
     navigate("/");
   };
@@ -176,7 +173,6 @@ function ShopContextProvider({ children }) {
     }
   };
 
-  /* ---------------- CART ACTIONS ---------------- */
   useEffect(() => {
     if (!isLoggedIn || !userToken || isFirstCartLoad.current) return;
 
@@ -362,12 +358,159 @@ function ShopContextProvider({ children }) {
     }
   };
 
+  const updateProduct = async (productId, updatedData) => {
+    if (!userToken || !isAdmin) {
+        toast.error("Not authorized");
+        return false;
+    }
+
+    try {
+        const response = await fetch(`${BASE_URL}/api/products/${productId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userToken}` 
+            },
+            body: JSON.stringify(updatedData)
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            await fetchProducts(); 
+            toast.success("Product updated successfully");
+            return true;
+        } else {
+            toast.error(data.message || "Update failed");
+            return false;
+        }
+    } catch (error) {
+        console.error("Update Product Error:", error);
+        toast.error("Failed to connect to server");
+        return false;
+    }
+};
+
+const deleteProduct = async (id) => {
+    if (!userToken || !isAdmin) {
+        toast.error("Not authorized");
+        return false;
+    }
+
+    try {
+        const response = await fetch(`${BASE_URL}/api/products/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${userToken}` 
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            setProducts(prev => prev.filter(item => item._id !== id));
+            return true;
+        } else {
+            toast.error(data.message || "Failed to delete");
+            return false;
+        }
+    } catch (error) {
+        console.error("Delete Error:", error);
+        toast.error("Server error");
+        return false;
+    }
+};
+
+
+const updateOrderStatus = async (orderId, newStatus) => {
+    const token = userToken || localStorage.getItem("token");
+
+    if (!token || !isAdmin) {
+        toast.error("Session expired or Not Authorized");
+        return false;
+    }
+
+    try {
+        const response = await fetch(`${BASE_URL}/api/orders/status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` 
+            },
+            body: JSON.stringify({ orderId, status: newStatus })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            toast.success("Order status updated!");
+            return true;
+        } else {
+            toast.error(data.message);
+            return false;
+        }
+    } catch (error) {
+        console.error("Update Status Error:", error);
+        toast.error("Failed to update status");
+        return false;
+    }
+};
+
+useEffect(() => {
+    fetchProducts();
+    if (isLoggedIn && userRole === 'admin') {
+        fetchOrders(); 
+    }
+}, [isLoggedIn, userRole]);
+
+const deleteUser = async (id) => {
+    try {
+        const response = await fetch(`${BASE_URL}/api/user/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${userToken}` }
+        });
+        const data = await response.json();
+        if (data.success) {
+            setUsers(prev => prev.filter(user => user._id !== id));
+            toast.success("User removed");
+        }
+    } catch (error) {
+        toast.error("Delete failed");
+    }
+};
+
+const updateRole = async (userId, newRole) => {
+    try {
+        const response = await fetch(`${BASE_URL}/api/user/update-role/${userId}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userToken}`
+            },
+            body: JSON.stringify({ role: newRole })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            toast.success(data.message);
+            fetchUsers(); 
+        } else {
+            toast.error(data.message);
+        }
+    } catch (error) {
+        console.error("Role Update Error:", error);
+        toast.error("Failed to update role");
+    }
+};
+
+
   return (
     <ShopContext.Provider
       value={{
+        deleteUser,
+        updateRole,
         products,
-        users,        // <-- Added to context
-        fetchUsers,   // <-- Added to context
+        users,        
+        fetchUsers,  
         currency,
         delivery_fee,
         cartItems,
@@ -387,7 +530,10 @@ function ShopContextProvider({ children }) {
         saveNewUser,
         isAdmin,
         placeOrder,
-        fetchOrders
+        fetchOrders,
+        updateProduct,
+        deleteProduct,
+        updateOrderStatus
       }}
     >
       {children}

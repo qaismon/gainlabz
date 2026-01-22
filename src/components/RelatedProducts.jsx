@@ -2,13 +2,12 @@ import React, { useContext, useEffect, useState } from 'react'
 import { ShopContext } from '../context/ShopContext'
 import Title from './Title'
 import ProductItem from './ProductItem'
-import QuickView from './QuickView' // Import our new component
+import QuickView from './QuickView' 
 
 function RelatedProducts({ category, subCategory }) {
     const { products, currency } = useContext(ShopContext)
     const [related, setRelated] = useState([])
     
-    // Simple state to track which product is being viewed
     const [quickViewProduct, setQuickViewProduct] = useState(null);
 
     useEffect(() => {
@@ -43,7 +42,6 @@ function RelatedProducts({ category, subCategory }) {
                 ))}
             </div>
 
-            {/* Use the new QuickView component */}
             <QuickView 
                 product={quickViewProduct} 
                 isOpen={!!quickViewProduct} 

@@ -1,6 +1,6 @@
 import React from 'react';
 import Title from '../components/Title';
-import { assets } from '../assets/assets'; // Use a fitness/supplement related image here
+import { assets } from '../assets/assets'; 
 
 function About() {
   return (

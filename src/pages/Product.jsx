@@ -15,18 +15,15 @@ function Product() {
   const [flavor, setFlavor] = useState("");
   const [qty, setQty] = useState(1);
 
-  /* ---------------- IMAGE URL HELPER (OPTION 1) ---------------- */
  const getImageUrl = (src) => {
   if (!src) return "/placeholder.png";
   if (src.startsWith("http")) return src;
 
-  // 🔥 REMOVE /api from base URL
   const BASE_DOMAIN = API_BASE_URL.replace("/api", "");
 
   return `${BASE_DOMAIN}/${src}`;
 };
 
-  /* ---------------- STOCK & CART CALCS ---------------- */
   const availableStock = productData
     ? Number(productData.stock) || 0
     : 0;
@@ -42,7 +39,6 @@ function Product() {
 
   const isInStock = availableStock > 0;
 
-  /* ---------------- LOAD PRODUCT ---------------- */
   useEffect(() => {
     if (!products.length) return;
 
@@ -61,7 +57,6 @@ function Product() {
     setQty(1);
   }, [products, productId]);
 
-  /* ---------------- KEEP QTY VALID ---------------- */
   useEffect(() => {
     if (!productData) return;
 
@@ -87,7 +82,6 @@ function Product() {
     );
   }
 
-  /* ---------------- ADD TO CART ---------------- */
   const handleAddToCart = () => {
     if (!flavor) {
       toast.error("Please select a flavor.");
@@ -136,11 +130,9 @@ function Product() {
           </div>
         </div>
 
-        {/* ---------- DETAILS ---------- */}
         <div className="flex-1">
           <h1 className="text-2xl font-semibold">{productData.name}</h1>
 
-          {/* ---------- PRICE ---------- */}
           <div className="mt-4">
             {productData.onSale && productData.offerPrice ? (
               <>
@@ -161,7 +153,6 @@ function Product() {
             )}
           </div>
 
-          {/* ---------- STOCK ---------- */}
           <p className="mt-2 font-semibold">
             {isInStock ? (
               <span className="text-green-600">
@@ -174,12 +165,10 @@ function Product() {
             )}
           </p>
 
-          {/* ---------- DESCRIPTION ---------- */}
           <p className="mt-4 text-gray-600">
             {productData.description}
           </p>
 
-          {/* ---------- FLAVORS ---------- */}
           {productData.flavor?.length > 0 && (
             <div className="mt-6">
               <p className="text-sm font-medium mb-2">
@@ -203,7 +192,6 @@ function Product() {
             </div>
           )}
 
-          {/* ---------- QTY ---------- */}
           {isInStock && (
             <>
               <div className="mt-6 flex items-center gap-4">

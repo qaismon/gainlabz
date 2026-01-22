@@ -1,5 +1,5 @@
 import React from 'react';
-import { Truck, ShieldCheck, Zap } from 'lucide-react'; // Using lucide-react for icons (install if needed)
+import { Truck, ShieldCheck, Zap } from 'lucide-react'; 
 import './MarqueeBanner.css'; // Import the CSS for the animation
 
 const marqueeContent = [

@@ -79,7 +79,6 @@ const App = () => {
             <Route path="offers" element={<AdminOfferSetter />} />
             <Route path="orders" element={<AdminOrders />} />  
             <Route path="users" element={<Users />} />  
-
                   
           </Route>
         </Route>

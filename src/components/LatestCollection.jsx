@@ -7,12 +7,10 @@ import Title from "./Title";
 import QuickView from "./QuickView";
 import API_BASE_URL from "../services/api";
 
-/* ---------------- IMAGE URL HELPER ---------------- */
 const getImageUrl = (src) => {
   if (!src) return "/placeholder.png";
   if (src.startsWith("http")) return src;
 
-  // remove /api so /uploads works
   const BASE_DOMAIN = API_BASE_URL.replace("/api", "");
   return `${BASE_DOMAIN}/${src}`;
 };
@@ -37,7 +35,6 @@ export default function Collection() {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 gap-y-6">
         {latestFive.map(product => {
-          // 🔥 normalize image
           const imageSrc = Array.isArray(product.image)
             ? product.image[0]
             : product.image;
@@ -47,7 +44,6 @@ export default function Collection() {
               key={product._id}
               className="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
             >
-              {/* IMAGE */}
               <div
                 className="relative aspect-square overflow-hidden bg-gray-50 cursor-pointer"
                 onClick={() => setQuickViewProduct(product)}
@@ -59,7 +55,6 @@ export default function Collection() {
                   loading="lazy"
                 />
 
-                {/* HOVER OVERLAY */}
                 <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <div className="bg-white p-3 rounded-full shadow-xl text-gray-900 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
                     <FiEye size={22} />
@@ -67,7 +62,6 @@ export default function Collection() {
                 </div>
               </div>
 
-              {/* DETAILS */}
               <div className="p-3 text-center">
                 <h3
                   onClick={() => navigate(`/product/${product._id}`)}
@@ -85,7 +79,6 @@ export default function Collection() {
         })}
       </div>
 
-      {/* QUICK VIEW */}
       <QuickView
         product={quickViewProduct}
         isOpen={!!quickViewProduct}

@@ -4,16 +4,21 @@ import { ShopContext } from '../../context/ShopContext';
 import { toast } from 'react-toastify';
 
 function EditProduct() {
-    const { products, updateProduct } = useContext(ShopContext);
+    const { products, updateProduct, isAdmin } = useContext(ShopContext);
     const { id } = useParams();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     
-    const initialData = {
-        name: '', price: '', stock: '', description: '', category: '', subCategory: '', image: [], flavor: '', bestseller: false
-    };
-    const [data, setData] = useState(initialData);
+    const [data, setData] = useState({
+        name: '', price: '', stock: '', description: '', category: 'Protein', subCategory: '', image: [], flavor: '', bestseller: false
+    });
     const [newImageFile, setNewImageFile] = useState(null); 
+
+    useEffect(() => {
+        if (!isAdmin) {
+            navigate('/');
+        }
+    }, [isAdmin, navigate]);
 
     const fileToBase64 = (file) => {
         return new Promise((resolve, reject) => {
@@ -25,7 +30,7 @@ function EditProduct() {
     };
 
     useEffect(() => {
-        const productToEdit = products.find(p => String(p.id) === String(id));
+        const productToEdit = products.find(p => String(p._id) === String(id));
 
         if (productToEdit) {
             setData({
@@ -35,23 +40,20 @@ function EditProduct() {
                 image: Array.isArray(productToEdit.image) ? productToEdit.image : [], 
                 flavor: Array.isArray(productToEdit.flavor) ? productToEdit.flavor.join(', ') : '',
             });
-        } else if (products.length > 0) {
-            toast.error("Product not found.");
-            navigate('/admin/list-products');
         }
-    }, [id, products, navigate]);
+    }, [id, products]);
 
     const onChangeHandler = (event) => {
-        const name = event.target.name;
-        const value = name === 'bestseller' ? event.target.checked : event.target.value;
-        setData(prevData => ({ ...prevData, [name]: value }));
+        const { name, value, type, checked } = event.target;
+        setData(prevData => ({ 
+            ...prevData, 
+            [name]: type === 'checkbox' ? checked : value 
+        }));
     };
 
     const handleNewImageChange = (event) => {
         if (event.target.files && event.target.files[0]) {
             setNewImageFile(event.target.files[0]);
-        } else {
-            setNewImageFile(null);
         }
     };
     
@@ -60,42 +62,40 @@ function EditProduct() {
             ...prevData,
             image: prevData.image.filter((_, index) => index !== indexToDelete)
         }));
-        toast.info("Image will be removed upon saving.");
     };
 
     const onSubmitHandler = async (event) => {
         event.preventDefault();
         setLoading(true);
 
-        let finalImageArray = [...data.image]; 
-
         try {
+            let finalImageArray = [...data.image]; 
+
             if (newImageFile) {
                 const base64Image = await fileToBase64(newImageFile);
                 finalImageArray.push(base64Image);
             }
 
-            const flavorArray = data.flavor.split(',').map(f => f.trim()).filter(f => f.length > 0);
+            const flavorArray = typeof data.flavor === 'string' 
+                ? data.flavor.split(',').map(f => f.trim()).filter(f => f.length > 0)
+                : data.flavor;
             
             const productToSend = {
                 ...data,
-                price: parseFloat(data.price),
-                stock: parseInt(data.stock, 10) || 0, 
+                price: Number(data.price),
+                stock: Number(data.stock), 
                 flavor: flavorArray,
                 image: finalImageArray 
             };
 
-            const result = await updateProduct(id, productToSend);
+            const success = await updateProduct(id, productToSend);
             
-            if (result) {
-                toast.success(`Product "${productToSend.name}" updated!`);
-                navigate('/admin/list-products');
-            } else {
-                toast.error("Failed to update product. Check server connection.");
+            if (success) {
+                navigate('/admin/list-products'); 
             }
         } catch (error) {
             console.error("Update error:", error);
-            toast.error("An unexpected error occurred during update.");
+            toast.error("An unexpected error occurred.");
         } finally {
             setLoading(false);
         }
@@ -103,23 +103,22 @@ function EditProduct() {
 
     return (
         <div className='p-6 bg-white shadow-lg rounded-lg max-w-4xl mx-auto my-10'>
-            <h2 className='text-2xl font-bold mb-6'>Edit Product: {data.name}</h2>
+            <h2 className='text-2xl font-bold mb-6 text-gray-800'>Edit Product: {data.name}</h2>
             
             <form onSubmit={onSubmitHandler} className='space-y-4'>
-                
                 <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-                    <input name='name' onChange={onChangeHandler} value={data.name} type="text" placeholder='Product Name' required className='w-full p-3 border rounded-md' />
-                    <input name='price' onChange={onChangeHandler} value={data.price} type="number" step="0.01" placeholder='Price ($)' required className='w-full p-3 border rounded-md' />
-                    <input 
-                        name='stock' 
-                        onChange={onChangeHandler} 
-                        value={data.stock} 
-                        type="number" 
-                        min="0"
-                        placeholder='Stock Quantity' 
-                        required 
-                        className='w-full p-3 border rounded-md bg-yellow-50 border-yellow-300' 
-                    />
+                    <div>
+                        <label className='text-xs font-bold text-gray-500 uppercase'>Product Name</label>
+                        <input name='name' onChange={onChangeHandler} value={data.name} type="text" required className='w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500' />
+                    </div>
+                    <div>
+                        <label className='text-xs font-bold text-gray-500 uppercase'>Price ({products[0]?.currency || '$'})</label>
+                        <input name='price' onChange={onChangeHandler} value={data.price} type="number" step="0.01" required className='w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500' />
+                    </div>
+                    <div>
+                        <label className='text-xs font-bold text-gray-500 uppercase'>Stock Count</label>
+                        <input name='stock' onChange={onChangeHandler} value={data.stock} type="number" required className='w-full p-3 border rounded-md bg-yellow-50 focus:ring-2 focus:ring-yellow-400' />
+                    </div>
                 </div>
 
                 <div className='grid grid-cols-2 gap-4'>
@@ -130,7 +129,7 @@ function EditProduct() {
                         <option value="Vitamins">Vitamins</option>
                     </select>
                     <select name="subCategory" onChange={onChangeHandler} value={data.subCategory} className='w-full p-3 border rounded-md'>
-                        <option value="">Select Subcategory (Optional)</option>
+                        <option value="">No Subcategory</option>
                         <option value="Whey">Whey</option>
                         <option value="Stim">Stim</option>
                         <option value="Non-stim">Non-stim</option>
@@ -140,72 +139,31 @@ function EditProduct() {
                 <textarea name='description' onChange={onChangeHandler} value={data.description} rows="3" placeholder='Product Description' required className='w-full p-3 border rounded-md'></textarea>
                 
                 <div className='p-4 border rounded-md bg-gray-50'>
-                    <h3 className='text-lg font-semibold mb-3'>Image Management</h3>
-                    
-                    <p className='text-sm text-gray-600 mb-2'>Existing Images ({data.image.length}): Click 'X' to remove. <span className='font-bold text-red-500'>NOTE: Images must be Base64 for persistent saving.</span></p>
+                    <h3 className='text-sm font-bold text-gray-700 mb-3 uppercase'>Gallery Management</h3>
                     <div className='flex flex-wrap gap-4 mb-4'>
                         {data.image.map((imgSrc, index) => (
-                            <div key={index} className='relative w-24 h-24 border rounded-md overflow-hidden group'>
-                                <img 
-                                    src={imgSrc} 
-                                    alt={`Product ${index + 1}`} 
-                                    className='w-full h-full object-cover'
-                                />
-                                <button
-                                    type='button'
-                                    onClick={() => handleDeleteImage(index)}
-                                    className='absolute top-0 right-0 p-1 bg-red-600 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity'
-                                    aria-label="Delete image"
-                                >
-                                    X
-                                </button>
+                            <div key={index} className='relative w-20 h-20 border rounded-md overflow-hidden shadow-sm group'>
+                                <img src={imgSrc} alt="Product" className='w-full h-full object-cover' />
+                                <button type='button' onClick={() => handleDeleteImage(index)} className='absolute top-0 right-0 bg-red-600 text-white w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity'>×</button>
                             </div>
                         ))}
+                        <label className='w-20 h-20 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 text-gray-400'>
+                            <span className='text-xl'>+</span>
+                            <input type="file" accept="image/*" onChange={handleNewImageChange} className='hidden' />
+                        </label>
                     </div>
-
-                    <hr className='my-3'/>
-
-                    <label htmlFor="newProductImage" className='block text-gray-700 font-medium mb-1'>Upload New Image</label>
-                    <input 
-                        id="newProductImage"
-                        type="file" 
-                        accept=".jpg, .jpeg, .png"
-                        onChange={handleNewImageChange}
-                        className='w-full' 
-                    />
-                    {newImageFile && (
-                        <div className='mt-3'>
-                            <p className='text-sm text-gray-600'>New Image Preview (Will be saved as Base64):</p>
-                            <img 
-                                src={URL.createObjectURL(newImageFile)} 
-                                alt="New Product Preview" 
-                                className='w-24 h-24 object-cover rounded-md border mt-2'
-                            />
-                        </div>
-                    )}
+                    {newImageFile && <p className='text-xs text-blue-600'>New image selected: {newImageFile.name}</p>}
                 </div>
 
-
-                <input name='flavor' onChange={onChangeHandler} value={data.flavor} type="text" placeholder='Flavors (comma separated)' className='w-full p-3 border rounded-md' />
+                <input name='flavor' onChange={onChangeHandler} value={data.flavor} type="text" placeholder='Flavors (e.g. Chocolate, Vanilla)' className='w-full p-3 border rounded-md' />
                 
-                <div className='flex items-center gap-3 p-3 border rounded-md'>
-                    <input 
-                        type="checkbox" 
-                        name="bestseller" 
-                        id="bestseller" 
-                        checked={data.bestseller} 
-                        onChange={onChangeHandler}
-                        className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
-                    />
-                    <label htmlFor="bestseller" className='text-gray-700'>Mark as Bestseller</label>
+                <div className='flex items-center gap-3'>
+                    <input type="checkbox" name="bestseller" id="bestseller" checked={data.bestseller} onChange={onChangeHandler} className='w-4 h-4' />
+                    <label htmlFor="bestseller" className='text-gray-700 font-medium'>Mark as Bestseller</label>
                 </div>
 
-                <button 
-                    type='submit' 
-                    disabled={loading}
-                    className={`w-full bg-blue-600 text-white font-semibold p-3 rounded-md transition ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
-                >
-                    {loading ? 'Updating Product...' : 'Save Changes'}
+                <button type='submit' disabled={loading} className={`w-full bg-blue-600 text-white font-bold p-4 rounded-md uppercase tracking-wider transition ${loading ? 'opacity-50' : 'hover:bg-blue-700 shadow-md'}`}>
+                    {loading ? 'Processing...' : 'Update Product'}
                 </button>
             </form>
         </div>

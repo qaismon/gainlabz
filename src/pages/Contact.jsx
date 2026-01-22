@@ -40,7 +40,7 @@ function Contact() {
     };
 
     return (
-        <div className=' px-4 max-w-[1200px] mx-auto'>
+        <div className='px-4 max-w-[1200px] mx-auto'>
             {/* Header Section */}
             <div className='text-center text-2xl'>
                 <Title text1={'CONTACT'} text2={'US'} />

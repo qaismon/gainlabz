@@ -6,7 +6,6 @@ import ProductItem from '../components/ProductItem';
 import QuickView from '../components/QuickView';
 import { motion } from 'framer-motion';
 
-// --- ANIMATION DEFINITIONS (Fixes the ReferenceError) ---
 const gridContainer = {
     hidden: { opacity: 0 },
     show: {
@@ -30,7 +29,6 @@ const gridItem = {
 };
 
 function Collection() {
-    // Safety default empty array
     const { products = [], search, showSearch, currency } = useContext(ShopContext);
 
     const [showFilter, setShowFilter] = useState(false);
@@ -52,7 +50,6 @@ function Collection() {
     };
 
     const applyFilterAndSort = useCallback(() => {
-        // Strict check to ensure products is an array
         if (!products || !Array.isArray(products)) {
             setFilterProducts([]);
             return;

@@ -98,7 +98,7 @@ function AddProduct() {
                 
                 <div className='grid grid-cols-3 gap-4'>
                     <input name='name' onChange={onChangeHandler} value={data.name} type="text" placeholder='Product Name' required className='w-full p-3 border rounded-md' />
-                    <input name='price' onChange={onChangeHandler} value={data.price} type="number" step="0.01" placeholder='Price ($)' required className='w-full p-3 border rounded-md' />
+                    <input name='price' onChange={onChangeHandler} min="0" value={data.price} type="number" step="0.01" placeholder='Price ($)' required className='w-full p-3 border rounded-md' />
                     <input 
                         name='stock' 
                         onChange={onChangeHandler} 
