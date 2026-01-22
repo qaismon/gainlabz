@@ -4,6 +4,7 @@ import { ShopContext } from "../context/ShopContext";
 import RelatedProducts from "../components/RelatedProducts";
 import { toast } from "react-toastify";
 import API_BASE_URL from "../services/api";
+import { ChevronRight, ShoppingBag, Minus, Plus, CheckCircle, AlertCircle } from 'lucide-react';
 
 function Product() {
   const { productId } = useParams();
@@ -194,37 +195,47 @@ function Product() {
 
           {isInStock && (
             <>
-              <div className="mt-6 flex items-center gap-4">
-                <button
-                  onClick={() =>
-                    setQty((q) => Math.max(1, q - 1))
-                  }
-                  disabled={qty <= 1}
+           {/* Modern Quantity Selector */}
+<div className="mt-8 mb-6">
+  <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Quantity</p>
+  
+  <div className="flex items-center gap-6 p-2 bg-gray-50 rounded-3xl w-fit border border-gray-100 shadow-sm">
+    <button
+      onClick={() => setQty((q) => Math.max(1, q - 1))}
+      disabled={qty <= 1}
+      className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white shadow-sm hover:shadow-md transition-all active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed group"
+    >
+      <Minus size={18} className="text-gray-600 group-hover:text-black" />
+    </button>
+
+    <span className="text-xl font-black w-8 text-center tabular-nums text-gray-800">
+      {qty}
+    </span>
+
+    <button
+      onClick={() => setQty((q) => Math.min(maxAddableQty, q + 1))}
+      disabled={qty >= maxAddableQty}
+      className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white shadow-sm hover:shadow-md transition-all active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed group"
+    >
+      <Plus size={18} className="text-green-600 group-hover:text-green-700" />
+    </button>
+  </div>
+</div>
+
+             <button
+                  onClick={handleAddToCart}
+                  disabled={qty <= 0 || !flavor}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white py-5 rounded-[2rem] font-black text-lg shadow-xl shadow-green-100 flex items-center justify-center gap-3 transition-all active:scale-95 group"
                 >
-                  −
+                  <ShoppingBag className="group-hover:animate-bounce" size={20} />
+                  ADD TO BAG — {currency}{(productData.offerPrice || productData.price) * qty}
                 </button>
-
-                <span>{qty}</span>
-
-                <button
-                  onClick={() =>
-                    setQty((q) =>
-                      Math.min(maxAddableQty, q + 1)
-                    )
-                  }
-                  disabled={qty >= maxAddableQty}
-                >
-                  +
-                </button>
-              </div>
-
-              <button
-                onClick={handleAddToCart}
-                disabled={qty <= 0 || !flavor}
-                className="mt-6 bg-black text-white px-6 py-3 rounded cursor-pointer"
-              >
-                ADD {qty} TO CART
-              </button>
+                
+                {currentCartQuantity > 0 && (
+                  <p className="text-center text-xs font-bold text-gray-400">
+                    You already have {currentCartQuantity} in your bag.
+                  </p>
+                )}
             </>
           )}
         </div>
