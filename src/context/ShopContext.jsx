@@ -20,7 +20,7 @@ function ShopContextProvider({ children }) {
   const currency = "$";
   const delivery_fee = 10;
 
-  /* ---------------- AUTH STATE ---------------- */
+  /* AUTH STATE */
   const [userToken, setUserToken] = useState(localStorage.getItem("token"));
   const [activeUserId, setActiveUserId] = useState(localStorage.getItem("userId"));
   const [activeUserName, setActiveUserName] = useState(localStorage.getItem("userName"));
