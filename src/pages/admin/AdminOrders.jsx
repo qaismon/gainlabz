@@ -24,7 +24,7 @@ const fetchAllOrders = async () => {
     if (!token) return;
     
     try {
-        const response = await fetch(`${'http://localhost:5000'}/api/orders/all`, {
+        const response = await fetch(`${'https://backend-node-mongo.onrender.com'}/api/orders/all`, {
             headers: { 
                 'Authorization': `Bearer ${token}`, // Added the missing {
                 'Content-Type': 'application/json' 
