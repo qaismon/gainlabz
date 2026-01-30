@@ -48,12 +48,14 @@ function ProductItem({
           className="relative w-full h-full cursor-pointer"
           onClick={() => navigate(`/product/${productId}`)}
         >
-          <img
-            src={getImageUrl(imageSrc)}
-            alt={name}
-            className="w-full h-full object-cover transition duration-500 ease-in-out group-hover:scale-110"
-            loading="lazy"
-          />
+          <img 
+  src={product.image[0].startsWith('data:') 
+    ? product.image[0] 
+    : `https://backend-node-mongo.onrender.com/${product.image[0]}`
+  } 
+  alt={product.name} 
+  className="w-full rounded"
+/>
         </div>
 
         {/* DESKTOP QUICK VIEW */}

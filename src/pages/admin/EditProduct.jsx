@@ -143,8 +143,12 @@ function EditProduct() {
                     <div className='flex flex-wrap gap-4 mb-4'>
                         {data.image.map((imgSrc, index) => (
                             <div key={index} className='relative w-20 h-20 border rounded-md overflow-hidden shadow-sm group'>
-                                <img src={imgSrc} alt="Product" className='w-full h-full object-cover' />
-                                <button type='button' onClick={() => handleDeleteImage(index)} className='absolute top-0 right-0 bg-red-600 text-white w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity'>×</button>
+<img 
+  src={imgSrc.startsWith('data:') ? imgSrc : `https://backend-node-mongo.onrender.com/${imgSrc}`} 
+  alt="Product" 
+  className='w-full h-full object-cover' 
+  onError={(e) => { e.target.src = "fallback-image-url.png"; }} // Add a fallback
+/>                               <button type='button' onClick={() => handleDeleteImage(index)} className='absolute top-0 right-0 bg-red-600 text-white w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity'>×</button>
                             </div>
                         ))}
                         <label className='w-20 h-20 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 text-gray-400'>
@@ -152,7 +156,17 @@ function EditProduct() {
                             <input type="file" accept="image/*" onChange={handleNewImageChange} className='hidden' />
                         </label>
                     </div>
-                    {newImageFile && <p className='text-xs text-blue-600'>New image selected: {newImageFile.name}</p>}
+                   {/* Inside your Gallery Management map */}
+{newImageFile && (
+    <div className='relative w-20 h-20 border rounded-md overflow-hidden shadow-sm border-blue-500'>
+        <img 
+            src={URL.createObjectURL(newImageFile)} 
+            alt="New Preview" 
+            className='w-full h-full object-cover' 
+        />
+        <p className="absolute bottom-0 bg-blue-600 text-[8px] text-white w-full text-center">New</p>
+    </div>
+)}
                 </div>
 
                 <input name='flavor' onChange={onChangeHandler} value={data.flavor} type="text" placeholder='Flavors (e.g. Chocolate, Vanilla)' className='w-full p-3 border rounded-md' />

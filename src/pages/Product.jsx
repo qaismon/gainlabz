@@ -16,14 +16,21 @@ function Product() {
   const [flavor, setFlavor] = useState("");
   const [qty, setQty] = useState(1);
 
- const getImageUrl = (src) => {
-  if (!src) return "/placeholder.png";
-  if (src.startsWith("http")) return src;
+  // --- LOGIC ADDED HERE TO PREVENT 414 ERRORS ---
+  const getImageUrl = (src) => {
+    if (!src) return "/placeholder.png";
+    
+    // 1. If it's a Base64 string, return it exactly as is
+    if (src.startsWith("data:")) return src;
+    
+    // 2. If it's already a full URL, return it
+    if (src.startsWith("http")) return src;
 
-  const BASE_DOMAIN = API_BASE_URL.replace("/api", "");
-
-  return `${BASE_DOMAIN}/${src}`;
-};
+    // 3. Otherwise, append the backend domain for stored files
+    const BASE_DOMAIN = API_BASE_URL.replace("/api", "");
+    return `${BASE_DOMAIN}/${src}`;
+  };
+  // ----------------------------------------------
 
   const availableStock = productData
     ? Number(productData.stock) || 0
@@ -98,7 +105,6 @@ function Product() {
     toast.success("Added to cart!");
   };
 
-  /* ---------------- UI ---------------- */
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex gap-12 flex-col md:flex-row">
@@ -109,7 +115,7 @@ function Product() {
               <button
                 key={idx}
                 onClick={() => setImage(src)}
-                className={`rounded border ${
+                className={`rounded border overflow-hidden ${
                   image === src ? "ring-2 ring-green-400" : ""
                 }`}
               >
@@ -126,7 +132,7 @@ function Product() {
             <img
               src={getImageUrl(image)}
               alt={productData.name}
-              className="w-full rounded"
+              className="w-full rounded shadow-sm"
             />
           </div>
         </div>
@@ -166,24 +172,22 @@ function Product() {
             )}
           </p>
 
-          <p className="mt-4 text-gray-600">
+          <p className="mt-4 text-gray-600 leading-relaxed">
             {productData.description}
           </p>
 
           {productData.flavor?.length > 0 && (
             <div className="mt-6">
-              <p className="text-sm font-medium mb-2">
-                Select Flavor
-              </p>
+              <p className="text-sm font-medium mb-2">Select Flavor</p>
               <div className="flex gap-2 flex-wrap">
                 {productData.flavor.map((f) => (
                   <button
                     key={f}
                     onClick={() => setFlavor(f)}
-                    className={`cursor-pointer px-4 py-2 border rounded ${
+                    className={`px-4 py-2 border rounded transition-all ${
                       flavor === f
-                        ? "bg-green-500 text-white"
-                        : ""
+                        ? "bg-green-500 text-white border-green-500 shadow-md"
+                        : "bg-white text-gray-700 hover:border-gray-400"
                     }`}
                   >
                     {f}
@@ -195,54 +199,49 @@ function Product() {
 
           {isInStock && (
             <>
-           {/* Modern Quantity Selector */}
-<div className="mt-8 mb-6">
-  <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Quantity</p>
-  
-  <div className="flex items-center gap-6 p-2 bg-gray-50 rounded-3xl w-fit border border-gray-100 shadow-sm">
-    <button
-      onClick={() => setQty((q) => Math.max(1, q - 1))}
-      disabled={qty <= 1}
-      className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white shadow-sm hover:shadow-md transition-all active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed group"
-    >
-      <Minus size={18} className="text-gray-600 group-hover:text-black" />
-    </button>
+              <div className="mt-8 mb-6">
+                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Quantity</p>
+                <div className="flex items-center gap-6 p-2 bg-gray-50 rounded-3xl w-fit border border-gray-100 shadow-sm">
+                  <button
+                    onClick={() => setQty((q) => Math.max(1, q - 1))}
+                    disabled={qty <= 1}
+                    className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white shadow-sm hover:shadow-md transition-all active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed group"
+                  >
+                    <Minus size={18} className="text-gray-600 group-hover:text-black" />
+                  </button>
+                  <span className="text-xl font-black w-8 text-center tabular-nums text-gray-800">
+                    {qty}
+                  </span>
+                  <button
+                    onClick={() => setQty((q) => Math.min(maxAddableQty, q + 1))}
+                    disabled={qty >= maxAddableQty}
+                    className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white shadow-sm hover:shadow-md transition-all active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed group"
+                  >
+                    <Plus size={18} className="text-green-600 group-hover:text-green-700" />
+                  </button>
+                </div>
+              </div>
 
-    <span className="text-xl font-black w-8 text-center tabular-nums text-gray-800">
-      {qty}
-    </span>
-
-    <button
-      onClick={() => setQty((q) => Math.min(maxAddableQty, q + 1))}
-      disabled={qty >= maxAddableQty}
-      className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white shadow-sm hover:shadow-md transition-all active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed group"
-    >
-      <Plus size={18} className="text-green-600 group-hover:text-green-700" />
-    </button>
-  </div>
-</div>
-
-             <button
-                  onClick={handleAddToCart}
-                  disabled={qty <= 0 || !flavor}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white py-5 rounded-[2rem] font-black text-lg shadow-xl shadow-green-100 flex items-center justify-center gap-3 transition-all active:scale-95 group"
-                >
-                  <ShoppingBag className="group-hover:animate-bounce" size={20} />
-                  ADD TO BAG — {currency}{(productData.offerPrice || productData.price) * qty}
-                </button>
-                
-                {currentCartQuantity > 0 && (
-                  <p className="text-center text-xs font-bold text-gray-400">
-                    You already have {currentCartQuantity} in your bag.
-                  </p>
-                )}
+              <button
+                onClick={handleAddToCart}
+                disabled={qty <= 0 || !flavor}
+                className="w-full bg-green-600 hover:bg-green-700 text-white py-5 rounded-[2rem] font-black text-lg shadow-xl shadow-green-100 flex items-center justify-center gap-3 transition-all active:scale-95 group"
+              >
+                <ShoppingBag className="group-hover:animate-bounce" size={20} />
+                ADD TO BAG — {currency}{((productData.offerPrice || productData.price) * qty).toFixed(2)}
+              </button>
+              
+              {currentCartQuantity > 0 && (
+                <p className="mt-3 text-center text-xs font-bold text-gray-400">
+                  You already have {currentCartQuantity} in your bag.
+                </p>
+              )}
             </>
           )}
         </div>
       </div>
 
-      {/* ---------- RELATED ---------- */}
-      <div className="mt-10">
+      <div className="mt-16 border-t pt-10">
         <RelatedProducts
           category={productData.category}
           subCategory={productData.subCategory}
