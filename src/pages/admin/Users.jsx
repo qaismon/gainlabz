@@ -4,13 +4,17 @@ import { Trash2, Eye, Search, UserCheck, UserX } from 'lucide-react';
 import UserDetailsModal from './UserDetailsModal';
 
 function Users() {
-    const { users, fetchUsers, deleteUser, updateRole } = useContext(ShopContext);
+    const { users, fetchUsers, deleteUser, updateRole, fetchOrders } = useContext(ShopContext);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedUser, setSelectedUser] = useState(null);
 
     useEffect(() => {
         if (fetchUsers) fetchUsers();
+        // 🔥 CRITICAL: Fetch orders here so the modal has data to look at
+        if (fetchOrders) fetchOrders(); 
     }, []);
+
+  
 
     const filteredUsers = users.filter(user => 
         user.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 

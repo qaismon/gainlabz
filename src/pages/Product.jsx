@@ -16,21 +16,22 @@ function Product() {
   const [flavor, setFlavor] = useState("");
   const [qty, setQty] = useState(1);
 
-  // --- LOGIC ADDED HERE TO PREVENT 414 ERRORS ---
+  /* ---------------- FIXED IMAGE URL HELPER ---------------- */
   const getImageUrl = (src) => {
-    if (!src) return "/placeholder.png";
+    // 1. Flatten nested array if necessary
+    let cleanSrc = Array.isArray(src) ? src[0] : src;
     
-    // 1. If it's a Base64 string, return it exactly as is
-    if (src.startsWith("data:")) return src;
+    // 2. String safety check
+    if (!cleanSrc || typeof cleanSrc !== 'string') return "/placeholder.png";
     
-    // 2. If it's already a full URL, return it
-    if (src.startsWith("http")) return src;
+    // 3. Base64 or Full URL Check (Fixes 414)
+    if (cleanSrc.startsWith("data:") || cleanSrc.startsWith("http")) return cleanSrc;
 
-    // 3. Otherwise, append the backend domain for stored files
+    // 4. Standard File path logic
     const BASE_DOMAIN = API_BASE_URL.replace("/api", "");
-    return `${BASE_DOMAIN}/${src}`;
+    const finalPath = cleanSrc.startsWith('/') ? cleanSrc : `/${cleanSrc}`;
+    return `${BASE_DOMAIN}${finalPath}`;
   };
-  // ----------------------------------------------
 
   const availableStock = productData
     ? Number(productData.stock) || 0
@@ -60,7 +61,11 @@ function Product() {
     }
 
     setProductData(found);
-    setImage(found.image?.[0] || "");
+    
+    // Flatten initial image if it's nested
+    const initialImg = Array.isArray(found.image?.[0]) ? found.image[0][0] : found.image?.[0];
+    setImage(initialImg || "");
+    
     setFlavor(found.flavor?.[0] || "");
     setQty(1);
   }, [products, productId]);
@@ -114,9 +119,9 @@ function Product() {
             {(productData.image || []).map((src, idx) => (
               <button
                 key={idx}
-                onClick={() => setImage(src)}
-                className={`rounded border overflow-hidden ${
-                  image === src ? "ring-2 ring-green-400" : ""
+                onClick={() => setImage(Array.isArray(src) ? src[0] : src)}
+                className={`rounded border overflow-hidden transition-all ${
+                  image === (Array.isArray(src) ? src[0] : src) ? "ring-2 ring-green-400 border-transparent" : "border-gray-200"
                 }`}
               >
                 <img
@@ -132,13 +137,13 @@ function Product() {
             <img
               src={getImageUrl(image)}
               alt={productData.name}
-              className="w-full rounded shadow-sm"
+              className="w-full rounded-lg shadow-sm border border-gray-100"
             />
           </div>
         </div>
 
         <div className="flex-1">
-          <h1 className="text-2xl font-semibold">{productData.name}</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">{productData.name}</h1>
 
           <div className="mt-4">
             {productData.onSale && productData.offerPrice ? (
@@ -162,13 +167,14 @@ function Product() {
 
           <p className="mt-2 font-semibold">
             {isInStock ? (
-              <span className="text-green-600">
-                In Stock ({availableStock})
-                {currentCartQuantity > 0 &&
-                  ` • ${currentCartQuantity} in cart`}
+              <span className="text-green-600 flex items-center gap-1">
+                <CheckCircle size={16} /> In Stock ({availableStock})
+                {currentCartQuantity > 0 && ` • ${currentCartQuantity} in cart`}
               </span>
             ) : (
-              <span className="text-red-600">OUT OF STOCK</span>
+              <span className="text-red-600 flex items-center gap-1">
+                <AlertCircle size={16} /> OUT OF STOCK
+              </span>
             )}
           </p>
 
@@ -186,7 +192,7 @@ function Product() {
                     onClick={() => setFlavor(f)}
                     className={`px-4 py-2 border rounded transition-all ${
                       flavor === f
-                        ? "bg-green-500 text-white border-green-500 shadow-md"
+                        ? "bg-green-500 text-white border-green-500"
                         : "bg-white text-gray-700 hover:border-gray-400"
                     }`}
                   >
@@ -205,19 +211,21 @@ function Product() {
                   <button
                     onClick={() => setQty((q) => Math.max(1, q - 1))}
                     disabled={qty <= 1}
-                    className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white shadow-sm hover:shadow-md transition-all active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed group"
+                    className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white shadow-sm hover:shadow-md transition-all active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed"
                   >
-                    <Minus size={18} className="text-gray-600 group-hover:text-black" />
+                    <Minus size={18} className="text-gray-600" />
                   </button>
+
                   <span className="text-xl font-black w-8 text-center tabular-nums text-gray-800">
                     {qty}
                   </span>
+
                   <button
                     onClick={() => setQty((q) => Math.min(maxAddableQty, q + 1))}
                     disabled={qty >= maxAddableQty}
-                    className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white shadow-sm hover:shadow-md transition-all active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed group"
+                    className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white shadow-sm hover:shadow-md transition-all active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed"
                   >
-                    <Plus size={18} className="text-green-600 group-hover:text-green-700" />
+                    <Plus size={18} className="text-green-600" />
                   </button>
                 </div>
               </div>
@@ -232,7 +240,7 @@ function Product() {
               </button>
               
               {currentCartQuantity > 0 && (
-                <p className="mt-3 text-center text-xs font-bold text-gray-400">
+                <p className="mt-4 text-center text-xs font-bold text-gray-400">
                   You already have {currentCartQuantity} in your bag.
                 </p>
               )}
@@ -241,7 +249,7 @@ function Product() {
         </div>
       </div>
 
-      <div className="mt-16 border-t pt-10">
+      <div className="mt-16 border-t border-gray-100 pt-10">
         <RelatedProducts
           category={productData.category}
           subCategory={productData.subCategory}

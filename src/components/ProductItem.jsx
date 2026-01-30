@@ -5,17 +5,23 @@ import API_BASE_URL from "../services/api";
 
 /* ---------------- IMAGE URL HELPER ---------------- */
 const getImageUrl = (src) => {
-  if (!src) return "/placeholder.png";
+  // 1. Safety check: if src is null, undefined, or not a string
+  if (!src || typeof src !== 'string') return "/placeholder.png";
+
+  // 2. If it's Base64, return exactly as is (FIXES 414 ERROR)
+  if (src.startsWith("data:")) return src;
+
+  // 3. If it's already a full URL, return it
   if (src.startsWith("http")) return src;
 
-  // remove /api for static uploads
+  // 4. Fallback for static uploads
   const BASE_DOMAIN = API_BASE_URL.replace("/api", "");
   return `${BASE_DOMAIN}/${src}`;
 };
 
 function ProductItem({
   _id,
-  id, // fallback safety
+  id,
   name,
   price,
   offerPrice,
@@ -27,10 +33,23 @@ function ProductItem({
 }) {
   const navigate = useNavigate();
 
-  // 🔥 Normalize image (array or string)
-  const imageSrc = Array.isArray(image) ? image[0] : image;
+  // Normalize image: use the passed 'image' prop or fall back to 'product.image'
+  const imageArray = Array.isArray(image) ? image : (product?.image || []);
+  // 🔥 Normalize image (Handling the double-nested array bug)
+let rawImage = image || product?.image;
+
+// 1. If it's an array, get the first element
+let imageSrc = Array.isArray(rawImage) ? rawImage[0] : rawImage;
+
+// 2. If it's STILL an array (the nested array bug), get the first element of THAT
+if (Array.isArray(imageSrc)) {
+    imageSrc = imageSrc[0];
+}
+
+// Now imageSrc is definitely a string (e.g., "uploads/whey1.jpg")
 
   const productId = _id || id;
+
 
   return (
     <div className="group bg-white rounded-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 border border-gray-100 flex flex-col h-full">
@@ -48,14 +67,13 @@ function ProductItem({
           className="relative w-full h-full cursor-pointer"
           onClick={() => navigate(`/product/${productId}`)}
         >
+          {/* Use the helper function here to prevent the crash and 414 error */}
           <img 
-  src={product.image[0].startsWith('data:') 
-    ? product.image[0] 
-    : `https://backend-node-mongo.onrender.com/${product.image[0]}`
-  } 
-  alt={product.name} 
-  className="w-full rounded"
-/>
+            src={getImageUrl(imageSrc)} 
+            alt={name} 
+            className="w-full h-full object-cover rounded"
+            onError={(e) => { e.target.src = "/placeholder.png"; }}
+          />
         </div>
 
         {/* DESKTOP QUICK VIEW */}
@@ -82,7 +100,6 @@ function ProductItem({
             {name}
           </h3>
 
-          {/* MOBILE QUICK VIEW */}
           <button
             onClick={(e) => {
               e.stopPropagation();

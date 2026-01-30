@@ -5,13 +5,21 @@ import { assets } from "../assets/assets";
 import CartTotal from "../components/CartTotal";
 import API_BASE_URL from "../services/api";
 
-/* ---------- IMAGE HELPER ---------- */
+/* ---------- IMAGE HELPER (Fixed for 414 & Nested Arrays) ---------- */
 const getImageUrl = (src) => {
-  if (!src) return "/placeholder.png";
-  if (src.startsWith("http")) return src;
+  // 1. Handle nested array if present
+  let cleanSrc = Array.isArray(src) ? src[0] : src;
+  
+  // 2. String safety check
+  if (!cleanSrc || typeof cleanSrc !== 'string') return "/placeholder.png";
+  
+  // 3. Base64 or Full URL Check (Fixes 414)
+  if (cleanSrc.startsWith("data:") || cleanSrc.startsWith("http")) return cleanSrc;
 
+  // 4. Fallback for static files
   const BASE_DOMAIN = API_BASE_URL.replace("/api", "");
-  return `${BASE_DOMAIN}${src.startsWith("/") ? src : "/" + src}`;
+  const finalPath = cleanSrc.startsWith("/") ? cleanSrc : "/" + cleanSrc;
+  return `${BASE_DOMAIN}${finalPath}`;
 };
 
 function Cart() {
@@ -66,9 +74,14 @@ function Cart() {
 
           if (!productData) return null;
 
-          const imageSrc = Array.isArray(productData.image)
-            ? productData.image[0]
-            : productData.image;
+          // 🔥 Flatten image extraction to handle the nested array bug
+          const rawImage = productData.image;
+          let imageSrc = Array.isArray(rawImage) ? rawImage[0] : rawImage;
+          
+          // Secondary flatten if the first element was also an array
+          if (Array.isArray(imageSrc)) {
+            imageSrc = imageSrc[0];
+          }
 
           return (
             <div
@@ -78,18 +91,19 @@ function Cart() {
               {/* PRODUCT */}
               <div className="flex items-start gap-4">
                 <img
-                  className="w-16 sm:w-20 rounded"
+                  className="w-16 sm:w-20 rounded shadow-sm border border-gray-100"
                   src={getImageUrl(imageSrc)}
                   alt={productData.name}
+                  onError={(e) => { e.target.src = "/placeholder.png"; }}
                 />
 
                 <div>
-                  <p className="text-sm sm:text-lg font-medium">
+                  <p className="text-sm sm:text-lg font-medium text-gray-800">
                     {productData.name}
                   </p>
 
                   <div className="flex items-center gap-4 mt-2 text-sm">
-                    <p>
+                    <p className="font-semibold">
                       {currency}
                       {Number(
                         productData.onSale
@@ -98,7 +112,7 @@ function Cart() {
                       ).toFixed(2)}
                     </p>
 
-                    <span className="px-2 py-1 border bg-slate-50 rounded">
+                    <span className="px-2 py-1 border bg-slate-50 rounded text-xs text-gray-600">
                       {item.flavor}
                     </span>
                   </div>
@@ -110,25 +124,26 @@ function Cart() {
                 type="number"
                 min={1}
                 value={item.quantity}
-                onChange={(e) =>
-                  updateQuantity(
-                    item.id,
-                    item.flavor,
-                    Number(e.target.value)
-                  )
-                }
-                className="border max-w-[70px] px-2 py-1 rounded-md text-center"
+                onChange={(e) => {
+                   const val = Number(e.target.value);
+                   if (val > 0) {
+                     updateQuantity(item.id, item.flavor, val);
+                   }
+                }}
+                className="border max-w-[70px] px-2 py-1 rounded-md text-center focus:ring-1 focus:ring-black outline-none"
               />
 
               {/* REMOVE */}
-              <img
-                onClick={() =>
-                  updateQuantity(item.id, item.flavor, 0)
-                }
-                className="w-4 sm:w-5 cursor-pointer"
-                src={assets.bin_icon}
-                alt="Remove"
-              />
+              <div className="flex justify-center">
+                <img
+                  onClick={() =>
+                    updateQuantity(item.id, item.flavor, 0)
+                  }
+                  className="w-4 sm:w-5 cursor-pointer hover:opacity-70 transition-opacity"
+                  src={assets.bin_icon}
+                  alt="Remove"
+                />
+              </div>
             </div>
           );
         })}
@@ -143,9 +158,9 @@ function Cart() {
             <div className="w-full text-end">
               <button
                 onClick={() => navigate("/place-order")}
-                className="bg-black text-white text-sm my-8 px-8 py-3 rounded-md hover:bg-gray-800"
+                className="bg-black text-white text-sm my-8 px-8 py-4 rounded font-bold hover:bg-gray-800 active:scale-95 transition-all shadow-lg"
               >
-                PROCEED TO PAYMENT
+                PROCEED TO CHECKOUT
               </button>
             </div>
           </div>

@@ -1,101 +1,115 @@
-import React from 'react';
-import { Package, X, Clock, DollarSign, MapPin, Mail, Phone } from 'lucide-react';
+import React, { useContext } from 'react';
+import { Package, X, MapPin, Mail, Phone } from 'lucide-react';
+import { ShopContext } from '../../context/ShopContext'; // Double check this path
 
 function UserDetailsModal({ user, onClose }) {
+    // 1. Get the global orders list and currency from your context
+    const { orders, currency } = useContext(ShopContext);
+
     if (!user) return null;
 
-    const totalSpent = user.orders 
-        ? user.orders.reduce((sum, order) => sum + order.amount, 0).toFixed(2)
-        : '0.00';
+    // 2. Filter the orders you already fetched in ShopContext
+    // Your backend likely stores the user ID in 'userId' or 'user'
+    const userOrders = orders.filter(order => {
+    // 1. Check if the order has a 'user' object (populated) or just an ID
+    const orderUserId = typeof order.user === 'object' ? order.user._id : order.user;
+    
+    // 2. Compare with the modal's user ID
+    return String(orderUserId) === String(user._id);
+});
+
+    
+
+    // 3. Calculate total
+    const totalSpent = userOrders.reduce((sum, order) => sum + (Number(order.amount) || 0), 0).toFixed(2);
 
     return (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex justify-center items-start pt-10" id="userModal">
-            <div className="relative bg-white rounded-lg shadow-xl w-full max-w-4xl mx-4 my-8">
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-70 overflow-y-auto h-full w-full z-50 flex justify-center items-start pt-10 backdrop-blur-sm">
+            <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-4 my-8 border border-gray-200">
                 
                 {/* Header */}
-                <div className="flex justify-between items-center p-6 border-b border-gray-200">
-                    <h3 className="text-2xl font-bold text-gray-900">
-                        Details for: {user.name.toUpperCase()}
-                    </h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                <div className="flex justify-between items-center p-6 border-b">
+                    <div>
+                        <h3 className="text-2xl font-bold text-gray-900">
+                            Customer: {user.name}
+                        </h3>
+                        <p className="text-sm text-gray-500">ID: {user._id}</p>
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-full">
                         <X className="w-6 h-6" />
                     </button>
                 </div>
                 
-                {/* Body Content */}
                 <div className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        
-                        <div className="bg-blue-50 p-4 rounded-lg">
-                            <h4 className="font-semibold text-lg mb-3 text-blue-800 border-b pb-1">Account Info</h4>
-                            <p className="flex items-center gap-2 mb-1">
-                                <Mail className='w-4 h-4 text-blue-600'/>
-                                <strong>Email:</strong> {user.email}
-                            </p>
-                            <p className="mb-1">
-                                <strong>Role:</strong> <span className='capitalize font-medium text-blue-700'>{user.role}</span>
-                            </p>
-                            <p className="mt-2">
-                                <strong>Total Orders:</strong> <span className='font-semibold text-green-700'>{user.orders ? user.orders.length : 0}</span>
-                            </p>
-                            <p>
-                                <strong>Total Lifetime Spent:</strong> <span className='font-semibold text-green-700'>${totalSpent}</span>
-                            </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        {/* Account Box */}
+                        <div className="bg-blue-50 p-5 rounded-xl border border-blue-100">
+                            <h4 className="font-bold text-blue-800 mb-3 flex items-center gap-2">
+                                <Mail className='w-4 h-4'/> Contact Info
+                            </h4>
+                            <div className="space-y-2 text-sm">
+                                <p><strong>Email:</strong> {user.email}</p>
+                                <p className="capitalize"><strong>Role:</strong> {user.role}</p>
+                                <div className="mt-4 pt-4 border-t border-blue-200">
+                                    <p className="text-lg font-bold text-blue-900">
+                                        Total Spent: {currency}{totalSpent}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                         
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                            <h4 className="font-semibold text-lg mb-3 text-gray-800 border-b pb-1 flex items-center gap-2">
-                                <MapPin className='w-5 h-5 text-red-500'/> Default Address
+                        {/* Address Box */}
+                        <div className="bg-gray-50 p-5 rounded-xl border border-gray-200">
+                            <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                                <MapPin className='w-4 h-4 text-red-500'/> Shipping Address
                             </h4>
-                            {user.defaultAddress ? (
-                                <>
-                                    <p><strong>Name:</strong> {user.defaultAddress.firstName} {user.defaultAddress.lastName}</p>
-                                    <p className="flex items-center gap-2 mb-1">
-                                        <Phone className='w-4 h-4 text-gray-600'/>
-                                        <strong>Phone:</strong> {user.defaultAddress.phone}
-                                    </p>
-                                    <p><strong>Street:</strong> {user.defaultAddress.street}</p>
-                                    <p><strong>City/Zip:</strong> {user.defaultAddress.city}, {user.defaultAddress.zipcode}</p>
-                                    <p><strong>Country:</strong> {user.defaultAddress.country}</p>
-                                </>
+                            {user.address || user.deliveryData ? (
+                                <div className='text-sm space-y-1'>
+                                    <p><strong>Phone:</strong> {user.phone || "N/A"}</p>
+                                    <p><strong>Location:</strong> {user.address || "See order history"}</p>
+                                </div>
                             ) : (
-                                <p className='text-gray-500 italic'>No default address saved by this user.</p>
+                                <p className='text-gray-400 italic text-sm'>No saved address.</p>
                             )}
                         </div>
                     </div>
 
-                    <h4 className="font-bold text-xl mb-4 pt-4 border-t flex items-center gap-2">
-                        <Package className='w-5 h-5 text-green-600'/> Order History
+                    <h4 className="font-bold text-xl mb-4 flex items-center gap-2">
+                        <Package className='w-5 h-5 text-indigo-600'/> Order History ({userOrders.length})
                     </h4>
                     
-                    {user.orders && user.orders.length > 0 ? (
-                        <div className="overflow-x-auto border rounded-lg">
+                    {userOrders.length > 0 ? (
+                        <div className="overflow-x-auto border border-gray-200 rounded-lg">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
-                                        <th className='px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase'>ID</th>
-                                        <th className='px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase'>Date</th>
-                                        <th className='px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase'>Items</th>
-                                        <th className='px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase'>Total</th>
-                                        <th className='px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase'>Status</th>
+                                        <th className='px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>Date</th>
+                                        <th className='px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase'>Items</th>
+                                        <th className='px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase'>Price</th>
+                                        <th className='px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase'>Status</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {user.orders.map(order => (
-                                        <tr key={order.id} className='hover:bg-gray-50'>
-                                            <td className='px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900'>#{order.id.slice(0, 6)}...</td>
-                                            <td className='px-4 py-2 whitespace-nowrap text-sm text-gray-500'>
-                                                {order.date ? new Date(order.date).toLocaleDateString() : 'N/A'}
+                                    {userOrders.map((order) => (
+                                        <tr key={order._id} className='hover:bg-gray-50'>
+                                            <td className='px-4 py-3 whitespace-nowrap text-sm text-gray-600'>
+    {order.createdAt 
+        ? new Date(order.createdAt).toLocaleDateString() 
+        : order.date 
+            ? new Date(order.date).toLocaleDateString() 
+            : "N/A"}
+</td>
+                                            <td className='px-4 py-3 text-sm text-gray-600'>
+                                                {order.items?.length || 0} items
                                             </td>
-                                            <td className='px-4 py-2 whitespace-nowrap text-sm text-gray-500'>{order.items ? order.items.length : 0} item(s)</td>
-                                            <td className='px-4 py-2 whitespace-nowrap text-sm font-semibold text-right text-gray-900'>
-                                                ${order.amount.toFixed(2)}
+                                            <td className='px-4 py-3 whitespace-nowrap text-sm font-bold text-right text-gray-900'>
+                                                {currency}{(order.amount || 0).toFixed(2)}
                                             </td>
-                                            <td className='px-4 py-2 whitespace-nowrap text-sm'>
-                                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                                    order.status === 'Delivered' ? 'bg-green-100 text-green-800' :
-                                                    order.status === 'Processing' ? 'bg-yellow-100 text-yellow-800' :
-                                                    'bg-blue-100 text-blue-800'
+                                            <td className='px-4 py-3 whitespace-nowrap text-center text-xs'>
+                                                <span className={`px-3 py-1 rounded-full font-bold uppercase ${
+                                                    order.status === 'Delivered' ? 'bg-green-100 text-green-700' :
+                                                    order.status === 'Cancelled' ? 'bg-red-100 text-red-700' :
+                                                    'bg-orange-100 text-orange-700'
                                                 }`}>
                                                     {order.status}
                                                 </span>
@@ -106,13 +120,14 @@ function UserDetailsModal({ user, onClose }) {
                             </table>
                         </div>
                     ) : (
-                        <p className='text-gray-500 italic'>This user has not placed any orders yet.</p>
+                        <div className="text-center py-10 bg-gray-50 rounded-xl border-2 border-dashed">
+                            <p className='text-gray-400'>No orders found for this user in the current records.</p>
+                        </div>
                     )}
                 </div>
                 
-                {/* Footer */}
-                <div className="p-4 bg-gray-50 flex justify-end">
-                    <button onClick={onClose} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-full hover:bg-gray-300 transition">
+                <div className="p-4 bg-gray-50 border-t flex justify-end rounded-b-xl">
+                    <button onClick={onClose} className="px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium">
                         Close
                     </button>
                 </div>

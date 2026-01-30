@@ -7,12 +7,22 @@ import Title from "./Title";
 import QuickView from "./QuickView";
 import API_BASE_URL from "../services/api";
 
+/* ---------- UPDATED IMAGE HELPER ---------- */
 const getImageUrl = (src) => {
-  if (!src) return "/placeholder.png";
-  if (src.startsWith("http")) return src;
+  // 1. Flatten the double-nested array bug [[ 'path.jpg' ]]
+  let cleanSrc = Array.isArray(src) ? src[0] : src;
+  if (Array.isArray(cleanSrc)) cleanSrc = cleanSrc[0];
 
+  // 2. Safety check
+  if (!cleanSrc || typeof cleanSrc !== 'string') return "/placeholder.png";
+
+  // 3. Base64 (starts with data:) or Full URL check
+  if (cleanSrc.startsWith("data:") || cleanSrc.startsWith("http")) return cleanSrc;
+
+  // 4. Static backend path logic
   const BASE_DOMAIN = API_BASE_URL.replace("/api", "");
-  return `${BASE_DOMAIN}/${src}`;
+  const finalPath = cleanSrc.startsWith("/") ? cleanSrc : `/${cleanSrc}`;
+  return `${BASE_DOMAIN}${finalPath}`;
 };
 
 export default function Collection() {
@@ -23,6 +33,7 @@ export default function Collection() {
 
   const latestFive = useMemo(() => {
     const list = [...products];
+    // Sort by _id descending to get newest items first
     list.sort((a, b) => String(b._id).localeCompare(String(a._id)));
     return list.slice(0, 5);
   }, [products]);
@@ -35,14 +46,16 @@ export default function Collection() {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 gap-y-6">
         {latestFive.map(product => {
-          const imageSrc = Array.isArray(product.image)
-            ? product.image[0]
-            : product.image;
+          // Normalize the image source for the helper
+          const rawImage = product.image;
+          let imageSrc = Array.isArray(rawImage) ? rawImage[0] : rawImage;
 
           return (
             <motion.article
               key={product._id}
-              className="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
             >
               <div
                 className="relative aspect-square overflow-hidden bg-gray-50 cursor-pointer"
@@ -53,6 +66,7 @@ export default function Collection() {
                   alt={product.name}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   loading="lazy"
+                  onError={(e) => { e.target.src = "/placeholder.png"; }}
                 />
 
                 <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -65,7 +79,7 @@ export default function Collection() {
               <div className="p-3 text-center">
                 <h3
                   onClick={() => navigate(`/product/${product._id}`)}
-                  className="text-xs sm:text-sm font-medium text-gray-800 truncate cursor-pointer hover:underline hover:text-blue-600"
+                  className="text-xs sm:text-sm font-medium text-gray-800 truncate cursor-pointer hover:underline hover:text-green-600"
                 >
                   {product.name}
                 </h3>

@@ -7,8 +7,14 @@ import API_BASE_URL from "../services/api";
 /* ---------------- IMAGE URL HELPER ---------------- */
 const getImageUrl = (src) => {
   if (!src) return "/placeholder.png";
-  if (src.startsWith("http")) return src;
+  
+  // 🔥 BASE64 & ABSOLUTE URL CHECK
+  // If it's already a full URL or a Base64 string, return it as is
+  if (src.startsWith("http") || src.startsWith("data:image")) {
+    return src;
+  }
 
+  // Otherwise, append the backend domain
   const BASE_DOMAIN = API_BASE_URL.replace("/api", "");
   return `${BASE_DOMAIN}${src.startsWith("/") ? src : "/" + src}`;
 };
@@ -18,10 +24,13 @@ const QuickView = ({ product, isOpen, onClose, currency = "$" }) => {
 
   if (!isOpen || !product) return null;
 
-  /* ---------------- IMAGE NORMALIZATION ---------------- */
-  const imageSrc = Array.isArray(product.image)
-    ? product.image[0]
-    : product.image;
+  /* ---------------- DATA NORMALIZATION (FLATTENING) ---------------- */
+  // 1. Flatten images in case they are double-nested [[url]]
+  const images = Array.isArray(product.image) ? product.image.flat() : [product.image];
+  const imageSrc = images[0];
+
+  // 2. Flatten flavors in case they are double-nested [[flavor1, flavor2]]
+  const flavors = Array.isArray(product.flavor) ? product.flavor.flat() : [];
 
   /* ---------------- ANIMATIONS ---------------- */
   const overlayVariants = {
@@ -43,7 +52,7 @@ const QuickView = ({ product, isOpen, onClose, currency = "$" }) => {
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 p-4"
+        className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
         variants={overlayVariants}
         initial="hidden"
         animate="visible"
@@ -61,7 +70,7 @@ const QuickView = ({ product, isOpen, onClose, currency = "$" }) => {
           {/* Close Button */}
           <button
             onClick={onClose}
-            className="absolute top-5 right-5 z-20 p-2 bg-gray-100 rounded-full hover:bg-red-50 hover:text-red-600"
+            className="absolute top-5 right-5 z-20 p-2 bg-gray-100 rounded-full hover:bg-red-50 hover:text-red-600 transition-colors"
           >
             <FiX size={20} />
           </button>
@@ -81,14 +90,14 @@ const QuickView = ({ product, isOpen, onClose, currency = "$" }) => {
             </div>
 
             {/* CONTENT */}
-            <div className="p-8 md:p-12 flex-1 flex flex-col justify-center">
+            <div className="p-8 md:p-12 flex-1 flex flex-col justify-center text-left">
               {product.category && (
-                <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-[10px] font-black uppercase rounded-full mb-4">
+                <span className="inline-block w-fit px-3 py-1 bg-green-100 text-green-700 text-[10px] font-black uppercase rounded-full mb-4">
                   {product.category}
                 </span>
               )}
 
-              <h2 className="text-3xl md:text-4xl font-black text-gray-900">
+              <h2 className="text-3xl md:text-4xl font-black text-gray-900 leading-tight">
                 {product.name}
               </h2>
 
@@ -109,22 +118,22 @@ const QuickView = ({ product, isOpen, onClose, currency = "$" }) => {
                 )}
               </div>
 
-              <p className="text-gray-500 leading-relaxed">
+              <p className="text-gray-500 leading-relaxed text-sm">
                 {product.description ||
                   "Premium formula engineered for maximum performance and recovery."}
               </p>
 
               {/* FLAVORS */}
-              {Array.isArray(product.flavor) && product.flavor.length > 0 && (
+              {flavors.length > 0 && (
                 <div className="mt-8">
-                  <p className="text-[10px] font-black text-gray-400 uppercase mb-3">
-                    Flavors
+                  <p className="text-[10px] font-black text-gray-400 uppercase mb-3 tracking-widest">
+                    Available Flavors
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {product.flavor.map((f) => (
+                    {flavors.map((f, index) => (
                       <span
-                        key={f}
-                        className="px-4 py-2 bg-gray-50 border rounded-xl text-xs font-bold"
+                        key={index}
+                        className="px-4 py-2 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold text-gray-700"
                       >
                         {f}
                       </span>
@@ -140,7 +149,7 @@ const QuickView = ({ product, isOpen, onClose, currency = "$" }) => {
                     navigate(`/product/${product._id}`);
                     onClose();
                   }}
-                  className="flex items-center justify-center gap-3 w-full bg-gray-900 text-white py-4 rounded-2xl font-black text-lg hover:bg-green-600 transition"
+                  className="flex items-center justify-center gap-3 w-full bg-gray-900 text-white py-4 rounded-2xl font-black text-lg hover:bg-green-600 transition-all active:scale-95"
                 >
                   View Full Details
                   <FiArrowRight />

@@ -56,21 +56,31 @@ function ShopContextProvider({ children }) {
   }, [userToken, isAdmin]);
 
   /* ---------------- FETCH ORDERS ---------------- */
-  const fetchOrders = useCallback(async () => {
-    if (!userToken) return;
-    try {
-      const response = await fetch(`${BASE_URL}/api/orders/my-orders`, {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${userToken}` }
-      });
-      const data = await response.json();
-      if (data.success) {
-        setOrders(data.orders);
-      }
-    } catch (error) {
-      console.error("Error fetching orders:", error);
+/* ---------------- UPDATED FETCH ORDERS ---------------- */
+const fetchOrders = useCallback(async () => {
+  if (!userToken) return;
+  
+  try {
+    // Check if the user is admin. Note: isAdmin is calculated from userRole
+    const endpoint = isAdmin 
+      ? `${BASE_URL}/api/orders/all`   // This matches your router.get("/all"...)
+      : `${BASE_URL}/api/orders/my-orders`;
+
+    const response = await fetch(endpoint, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${userToken}` }
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      // This will now populate 'orders' with EVERYTHING if you're admin
+      setOrders(data.orders || []);
     }
-  }, [userToken]);
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+  }
+}, [userToken, isAdmin]);
 
   useEffect(() => {
     fetchOrders();
@@ -95,29 +105,35 @@ function ShopContextProvider({ children }) {
 
 
 
-  useEffect(() => {
-    if (!userToken) return;
+ /* ---------------- REFINED LOAD USER DATA ---------------- */
+useEffect(() => {
+  if (!userToken) return;
 
-    const loadUserData = async () => {
-      try {
-        const res = await fetch(`${BASE_URL}/api/users/me`, { 
-          headers: { Authorization: `Bearer ${userToken}` }
-        });
+  const loadUserData = async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/api/users/me`, { 
+        headers: { Authorization: `Bearer ${userToken}` }
+      });
 
-        if (res.ok) {
-          const data = await res.json();
-          setCartItems(data.cart || {});
+      if (res.ok) {
+        const data = await res.json();
+        setCartItems(data.cart || {});
+        
+        // ONLY set orders here if NOT an admin. 
+        // Admin orders are handled by the fetchOrders master call.
+        if (!isAdmin) {
           setOrders(data.orders || []);
         }
-      } catch (err) {
-        console.error("Failed to load user data", err);
-      } finally {
-        isFirstCartLoad.current = false;
       }
-    };
+    } catch (err) {
+      console.error("Failed to load user data", err);
+    } finally {
+      isFirstCartLoad.current = false;
+    }
+  };
 
-    loadUserData();
-  }, [userToken]);
+  loadUserData();
+}, [userToken, isAdmin]); // Added isAdmin
 
   const loginWithAPI = async (email, password) => {
     const res = await fetch(`${BASE_URL}/api/auth/login`, {

@@ -7,14 +7,22 @@ import Title from "./Title";
 import QuickView from "./QuickView";
 import API_BASE_URL from "../services/api";
 
-/* ---------------- IMAGE URL HELPER ---------------- */
+/* ---------------- FIXED IMAGE URL HELPER ---------------- */
 const getImageUrl = (src) => {
-  if (!src) return "/placeholder.png";
-  if (src.startsWith("http")) return src;
+  // 1. Flatten the double-nested array bug [[ 'path.jpg' ]]
+  let cleanSrc = Array.isArray(src) ? src[0] : src;
+  if (Array.isArray(cleanSrc)) cleanSrc = cleanSrc[0];
 
-  // remove /api for static uploads
+  // 2. Safety check: must be a string
+  if (!cleanSrc || typeof cleanSrc !== 'string') return "/placeholder.png";
+
+  // 3. Base64 or Full URL Check (Prevents 414 Error)
+  if (cleanSrc.startsWith("data:") || cleanSrc.startsWith("http")) return cleanSrc;
+
+  // 4. Static backend path logic
   const BASE_DOMAIN = API_BASE_URL.replace("/api", "");
-  return `${BASE_DOMAIN}/${src}`;
+  const finalPath = cleanSrc.startsWith("/") ? cleanSrc : `/${cleanSrc}`;
+  return `${BASE_DOMAIN}${finalPath}`;
 };
 
 const OfferProducts = forwardRef((props, ref) => {
@@ -43,14 +51,16 @@ const OfferProducts = forwardRef((props, ref) => {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 gap-y-6">
         {offerProducts.map(product => {
-          // 🔥 normalize image
-          const imageSrc = Array.isArray(product.image)
-            ? product.image[0]
-            : product.image;
+          // 🔥 Handle potential double-nested array during extraction
+          const rawImage = product.image;
+          let imageSrc = Array.isArray(rawImage) ? rawImage[0] : rawImage;
 
           return (
             <motion.article
               key={product._id}
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
               className="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
             >
               {/* SALE BADGE */}
@@ -68,6 +78,7 @@ const OfferProducts = forwardRef((props, ref) => {
                   alt={product.name}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   loading="lazy"
+                  onError={(e) => { e.target.src = "/placeholder.png"; }}
                 />
 
                 {/* HOVER OVERLAY */}
@@ -89,10 +100,10 @@ const OfferProducts = forwardRef((props, ref) => {
 
                 <div className="mt-1 flex flex-col items-center">
                   <span className="text-[10px] text-gray-400 line-through">
-                    {currency}{Number(product.price).toFixed(2)}
+                    {currency}{Number(product.price || 0).toFixed(2)}
                   </span>
                   <span className="text-sm font-bold text-red-600">
-                    {currency}{Number(product.offerPrice).toFixed(2)}
+                    {currency}{Number(product.offerPrice || 0).toFixed(2)}
                   </span>
                 </div>
               </div>
