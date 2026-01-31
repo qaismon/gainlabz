@@ -17,20 +17,19 @@ function Dashboard() {
   const orders = useMemo(() => contextOrders || [], [contextOrders]);
 
   // ---------------- METRICS (FIXED REVENUE LOGIC) ----------------
-  const { totalProducts, totalOrders, pendingOrders, totalRevenue } = useMemo(() => {
+const { totalProducts, totalOrders, pendingOrders, totalRevenue } = useMemo(() => {
     const totalProds = products?.length || 0;
     const totalOrds = orders.length;
-
-    // Filter for orders that haven't been processed yet
     const pendingOrds = orders.filter(o => o.status === "Pending").length;
 
     let revenue = 0;
     orders.forEach((o) => {
-      // FIX: Previously, this only counted "Delivered" orders.
-      // Now it counts all active orders except "Cancelled" ones.
+      // Ensure we exclude cancelled AND ensure the order is "Paid" 
+      // if you only want to show actual money collected.
       if (o.status !== "Cancelled") {
-        const amt = parseFloat(o.amount);
-        if (!isNaN(amt)) revenue += amt;
+        // Use Number() and handle potential undefined
+        const amt = Number(o.amount || 0); 
+        revenue += amt;
       }
     });
 

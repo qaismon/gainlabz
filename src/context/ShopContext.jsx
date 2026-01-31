@@ -105,7 +105,7 @@ const fetchOrders = useCallback(async () => {
 
 
 
- /* ---------------- REFINED LOAD USER DATA ---------------- */
+/* ---------------- REFINED LOAD USER DATA ---------------- */
 useEffect(() => {
   if (!userToken) return;
 
@@ -119,11 +119,8 @@ useEffect(() => {
         const data = await res.json();
         setCartItems(data.cart || {});
         
-        // ONLY set orders here if NOT an admin. 
-        // Admin orders are handled by the fetchOrders master call.
-        if (!isAdmin) {
-          setOrders(data.orders || []);
-        }
+        // REMOVE the order logic from here entirely.
+        // It's already handled by fetchOrders() below.
       }
     } catch (err) {
       console.error("Failed to load user data", err);
@@ -133,7 +130,7 @@ useEffect(() => {
   };
 
   loadUserData();
-}, [userToken, isAdmin]); // Added isAdmin
+}, [userToken]); // Removed isAdmin to prevent unnecessary re-runs
 
   const loginWithAPI = async (email, password) => {
     const res = await fetch(`${BASE_URL}/api/auth/login`, {
