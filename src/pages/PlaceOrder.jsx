@@ -63,7 +63,7 @@ function PlaceOrder() {
             key: import.meta.env.VITE_RAZORPAY_KEY_ID, 
             amount: orderData.amount,
             currency: orderData.currency,
-            name: "GymFluence",
+            name: "Gain Labz",
             description: "Store Purchase",
             order_id: orderData.id,
             handler: async function (response) {
