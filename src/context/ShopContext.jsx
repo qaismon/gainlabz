@@ -519,9 +519,34 @@ const updateRole = async (userId, newRole) => {
 };
 
 
+const getCartItemsArray = () => {
+    const orderItems = [];
+    for (const productId in cartItems) {
+      for (const flavor in cartItems[productId]) {
+        if (cartItems[productId][flavor] > 0) {
+          const itemInfo = products.find((p) => p._id === productId);
+          if (itemInfo) {
+            orderItems.push({
+              product: productId,
+              name: itemInfo.name,
+              flavor: flavor,
+              price: itemInfo.onSale ? itemInfo.offerPrice : itemInfo.price,
+              quantity: cartItems[productId][flavor]
+            });
+          }
+        }
+      }
+    }
+    return orderItems;
+  };
+
+
   return (
     <ShopContext.Provider
       value={{
+        backendUrl: BASE_URL, // ADD THIS
+        userToken,            // ADD THIS
+        getCartItemsArray,    // ADD THIS
         deleteUser,
         updateRole,
         products,
