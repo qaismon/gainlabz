@@ -38,6 +38,17 @@ function PlaceOrder() {
         }
     }, [defaultAddress]);
 
+    // Helper to format items correctly for Backend Stock logic
+    const getFormattedItems = () => {
+        return getCartItemsArray().map(item => ({
+            product: item._id, // Mapping _id to 'product' for backend findById
+            name: item.name,
+            flavor: item.flavor || "Default",
+            price: item.price,
+            quantity: item.quantity
+        }));
+    };
+
     const loadRazorpayScript = (src) => {
         return new Promise((resolve) => {
             const script = document.createElement("script");
@@ -56,8 +67,7 @@ function PlaceOrder() {
             return;
         }
 
-        // We need the items to send to verification so the backend can save the order
-        const orderItems = getCartItemsArray();
+        const orderItems = getFormattedItems();
 
         const options = {
             key: import.meta.env.VITE_RAZORPAY_KEY_ID, 
@@ -79,7 +89,7 @@ function PlaceOrder() {
                             razorpay_payment_id: response.razorpay_payment_id,
                             razorpay_signature: response.razorpay_signature,
                             formData,
-                            items: orderItems, // Crucial for backend saving
+                            items: orderItems, 
                             amount: totalAmount
                         })
                     });
@@ -136,9 +146,8 @@ function PlaceOrder() {
 
         if (paymentMethod === 'RAZORPAY') {
             try {
-                // Check if backendUrl exists
                 if (!backendUrl) {
-                    toast.error("Backend URL not found. Check ShopContext.");
+                    toast.error("Backend URL not found.");
                     return;
                 }
 
@@ -163,13 +172,11 @@ function PlaceOrder() {
                 toast.error("Failed to initiate payment");
             }
         } else {
-            const orderItems = getCartItemsArray();
+            const orderItems = getFormattedItems();
+            // Call placeOrder from ShopContext for COD/UPI
             await placeOrder(formData, paymentMethod, upiId, orderItems);
         }
     };
-
-    // ... Rest of your JSX remains the same as your provided code ...
-    // (Cart Empty check and Form render)
 
     if (subtotal === 0) {
         return (
@@ -185,7 +192,6 @@ function PlaceOrder() {
 
     return (
         <form onSubmit={onSubmitHandler} className='flex flex-col py-10 gap-8 max-w-[1200px] mx-auto px-4 lg:px-10 bg-gray-50/50'>
-            {/* The rest of your form JSX code */}
             <div className='flex flex-col lg:flex-row gap-12'>
                 {/* Left Side: Delivery Info */}
                 <div className='w-full lg:w-[60%] bg-white p-6 md:p-10 rounded-xl border border-gray-100 shadow-sm'>

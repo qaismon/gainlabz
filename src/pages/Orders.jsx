@@ -79,7 +79,11 @@ function Orders() {
                                 <div className='flex gap-10'>
                                     <div>
                                         <p className='text-[10px] text-gray-400 uppercase font-black tracking-[0.15em] mb-1'>Date</p>
-                                        <p className='text-sm text-gray-700 font-semibold'>{new Date(order.date).toLocaleDateString()}</p>
+                                        <p className='text-sm text-gray-700 font-semibold'>
+    {order.date || order.createdAt 
+        ? new Date(order.date || order.createdAt).toLocaleDateString() 
+        : "N/A"}
+</p>
                                     </div>
                                     <div>
                                         <p className='text-[10px] text-gray-400 uppercase font-black tracking-[0.15em] mb-1'>Total</p>
