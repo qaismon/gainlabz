@@ -32,7 +32,7 @@ const gridItem = {
 };
 
 function Collection() {
-    const { products = [], search, showSearch, currency } = useContext(ShopContext);
+    const { products = [], search, showSearch, currency, productsLoading } = useContext(ShopContext);
 
     const [showFilter, setShowFilter] = useState(false);
     const [filterProducts, setFilterProducts] = useState([]);
@@ -171,11 +171,11 @@ function Collection() {
                 </div>
             </div>
 
+
             {/* Right Product Grid */}
             <div className='flex-1'>
                 <div className='flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8'>
                     <Title text1={showOffersOnly ? 'SPECIAL' : 'ALL'} text2={showOffersOnly ? 'OFFERS' : 'COLLECTIONS'} />
-                    
                     <div className="flex items-center gap-3 w-full md:w-auto">
                         <span className="text-xs font-bold text-gray-400 uppercase">Sort By:</span>
                         <select 
@@ -190,27 +190,35 @@ function Collection() {
                     </div>
                 </div>
 
-                {/* ... Rest of the grid and empty state ... */}
-                <motion.div key={`grid-${filterProducts.length}-${sortType}`} variants={gridContainer} initial='hidden' animate='show' className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 gap-y-10'>
-                    <AnimatePresence mode='popLayout'>
-                        {filterProducts.map((item) => (
-                            <motion.div key={item._id} variants={gridItem} layout className='relative'>
-                                <ProductItem 
-                                    {...item} 
-                                    currency={currency} 
-                                    product={item} 
-                                    openQuickView={(p) => setQuickViewProduct(p)} 
-                                />
-                            </motion.div>
-                        ))}
-                    </AnimatePresence>
-                </motion.div>
-
-                {filterProducts.length === 0 && (
-                    <div className="text-center py-32 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-                        <p className='text-gray-400 font-medium'>We couldn't find any products matching those filters.</p>
-                        <button onClick={clearFilters} className="mt-4 text-green-600 font-bold underline">Show everything</button>
+                {/* Loading State */}
+                {productsLoading ? (
+                    <div className="text-center py-32 bg-gray-50 rounded-3xl border border-dashed border-gray-200 animate-pulse">
+                        <p className='text-gray-400 font-medium text-lg'>Please wait, products are loading...</p>
                     </div>
+                ) : (
+                    <>
+                        <motion.div key={`grid-${filterProducts.length}-${sortType}`} variants={gridContainer} initial='hidden' animate='show' className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 gap-y-10'>
+                            <AnimatePresence mode='popLayout'>
+                                {filterProducts.map((item) => (
+                                    <motion.div key={item._id} variants={gridItem} layout className='relative'>
+                                        <ProductItem 
+                                            {...item} 
+                                            currency={currency} 
+                                            product={item} 
+                                            openQuickView={(p) => setQuickViewProduct(p)} 
+                                        />
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+                        </motion.div>
+
+                        {filterProducts.length === 0 && (
+                            <div className="text-center py-32 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                                <p className='text-gray-400 font-medium'>We couldn't find any products matching those filters.</p>
+                                <button onClick={clearFilters} className="mt-4 text-green-600 font-bold underline">Show everything</button>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
 
