@@ -14,6 +14,7 @@ const BASE_URL = API_BASE_URL;
 
 export const ShopContext = createContext();
 
+
 function ShopContextProvider({ children }) {
   const navigate = useNavigate();
 
@@ -30,7 +31,7 @@ function ShopContextProvider({ children }) {
   const isAdmin = isLoggedIn && userRole === 'admin';
 
   const [products, setProducts] = useState([]);
-  const [productsLoading, setProductsLoading] = useState(true);
+  const [productsLoading, setProductsLoading] = useState(true); // <-- loading state
   const [cartItems, setCartItems] = useState({});
   const [orders, setOrders] = useState([]);
   const [users, setUsers] = useState([]); 
@@ -87,6 +88,7 @@ const fetchOrders = useCallback(async () => {
     fetchOrders();
     if (isAdmin) fetchUsers(); 
   }, [fetchOrders, fetchUsers, isAdmin]);
+
 
   const fetchProducts = useCallback(async () => {
     setProductsLoading(true);
@@ -207,42 +209,41 @@ useEffect(() => {
         console.error("Cart sync failed", err);
       }
     };
-    return (
-      <ShopContext.Provider
-        value={{
-          currency,
-          delivery_fee,
-          userToken,
-          setUserToken,
-          activeUserId,
-          setActiveUserId,
-          activeUserName,
-          setActiveUserName,
-          userRole,
-          setUserRole,
-          isLoggedIn,
-          setIsLoggedIn,
-          isAdmin,
-          products,
-          setProducts,
-          productsLoading,
-          cartItems,
-          setCartItems,
-          orders,
-          setOrders,
-          users,
-          setUsers,
-          fetchProducts,
-          fetchOrders,
-          fetchUsers,
-          loginWithAPI,
-          logoutUser,
-          isFirstCartLoad
-        }}
-      >
-        {children}
-      </ShopContext.Provider>
-    );
+    persistCart();
+  }, [cartItems, isLoggedIn, userToken]);
+
+  const addToCart = (productId, flavor, quantity = 1) => {
+    if (!isLoggedIn) {
+      toast.warn("Please login first");
+      navigate("/login");
+      return;
+    }
+    setCartItems(prev => {
+      const updated = structuredClone(prev || {});
+      if (!updated[productId]) updated[productId] = {};
+      updated[productId][flavor] = (updated[productId][flavor] || 0) + quantity;
+      confetti({ particleCount: 150, spread: 120 });
+      return updated;
+    });
+  };
+
+  const updateQuantity = (productId, flavor, quantity) => {
+    setCartItems(prev => {
+      const updated = structuredClone(prev || {});
+      if (quantity <= 0) {
+        delete updated[productId]?.[flavor];
+        if (Object.keys(updated[productId] || {}).length === 0) delete updated[productId];
+      } else {
+        if (!updated[productId]) updated[productId] = {};
+        updated[productId][flavor] = quantity;
+      }
+      return updated;
+    });
+  };
+
+  const getCartCount = () => {
+    return Object.values(cartItems).reduce(
+      (sum, flavors) => sum + Object.values(flavors).reduce((a, b) => a + b, 0),
       0
     );
   };
@@ -546,12 +547,13 @@ const getCartItemsArray = () => {
   return (
     <ShopContext.Provider
       value={{
-        backendUrl: BASE_URL, // ADD THIS
-        userToken,            // ADD THIS
-        getCartItemsArray,    // ADD THIS
+        backendUrl: BASE_URL,
+        userToken,
+        getCartItemsArray,
         deleteUser,
         updateRole,
         products,
+        productsLoading, // <-- provide loading state
         users,        
         fetchUsers,  
         currency,
