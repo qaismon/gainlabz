@@ -23,7 +23,7 @@ export default function StarRating({ rating = 0, onRate, readonly = false, size 
             className={`${
               star <= (hovered || rating)
                 ? "fill-yellow-400 text-yellow-400"
-                : "text-gray-300 dark:text-gray-600"
+                : "text-gray-300"
             } transition-colors`}
           />
         </button>

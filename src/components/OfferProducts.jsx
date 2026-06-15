@@ -57,7 +57,7 @@ const OfferProducts = forwardRef((props, ref) => {
           return (
             <article
               key={product._id}
-              className="gsap-item group relative bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+              className="gsap-item group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
             >
               {/* SALE BADGE */}
               <div className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full z-10 shadow-sm">

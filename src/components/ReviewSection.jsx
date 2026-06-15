@@ -2,7 +2,7 @@ import { useState, useEffect, useContext } from "react"
 import { ShopContext } from "../context/ShopContext"
 import { useNavigate } from "react-router-dom"
 import { toast } from "react-toastify"
-import { Star, ImagePlus, X, ThumbsUp, Clock, SortAsc, Trash2, ChevronDown, ChevronUp } from "lucide-react"
+import { Star, ImagePlus, X, SortAsc, Trash2 } from "lucide-react"
 import StarRating from "./StarRating"
 import API_BASE_URL from "../services/api"
 
@@ -10,11 +10,11 @@ function RatingBar({ label, count, total }) {
   const pct = total > 0 ? (count / total) * 100 : 0
   return (
     <div className="flex items-center gap-2 text-sm">
-      <span className="w-12 text-right text-gray-600 dark:text-gray-400">{label}</span>
-      <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+      <span className="w-12 text-right text-gray-600">{label}</span>
+      <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
         <div className="h-full bg-yellow-400 rounded-full transition-all" style={{ width: `${pct}%` }} />
       </div>
-      <span className="w-8 text-xs text-gray-500 dark:text-gray-400">{count}</span>
+      <span className="w-8 text-xs text-gray-500">{count}</span>
     </div>
   )
 }
@@ -28,18 +28,18 @@ function ReviewCard({ review, onDelete, currentUserId }) {
   }
 
   return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-5 bg-white dark:bg-gray-800">
+    <div className="border border-gray-200 rounded-xl p-5 bg-white">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center text-green-700 dark:text-green-300 font-bold text-sm">
+          <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-sm">
             {(review.user?.name || "A").charAt(0).toUpperCase()}
           </div>
           <div>
-            <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{review.user?.name || "Anonymous"}</p>
+            <p className="font-semibold text-gray-900 text-sm">{review.user?.name || "Anonymous"}</p>
             <div className="flex items-center gap-2 mt-0.5">
               <StarRating rating={review.rating} readonly size={14} />
               {review.verifiedPurchase && (
-                <span className="text-[10px] font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-1.5 py-0.5 rounded">
+                <span className="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">
                   Verified
                 </span>
               )}
@@ -48,7 +48,7 @@ function ReviewCard({ review, onDelete, currentUserId }) {
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-[11px] text-gray-400 dark:text-gray-500">
+          <span className="text-[11px] text-gray-400">
             {new Date(review.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
           </span>
           {currentUserId === review.user?._id && (
@@ -63,10 +63,10 @@ function ReviewCard({ review, onDelete, currentUserId }) {
       </div>
 
       {review.title && (
-        <h4 className="font-semibold text-gray-800 dark:text-gray-200 mt-3 text-sm">{review.title}</h4>
+        <h4 className="font-semibold text-gray-800 mt-3 text-sm">{review.title}</h4>
       )}
       {review.comment && (
-        <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm leading-relaxed">{review.comment}</p>
+        <p className="text-gray-600 mt-1 text-sm leading-relaxed">{review.comment}</p>
       )}
 
       {review.images?.length > 0 && (
@@ -76,7 +76,7 @@ function ReviewCard({ review, onDelete, currentUserId }) {
               key={i}
               src={imgUrl(img)}
               alt={`Review image ${i + 1}`}
-              className="w-16 h-16 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
+              className="w-16 h-16 object-cover rounded-lg border border-gray-200"
             />
           ))}
         </div>
@@ -86,7 +86,7 @@ function ReviewCard({ review, onDelete, currentUserId }) {
 }
 
 export default function ReviewSection({ productId }) {
-  const { isLoggedIn, userToken } = useContext(ShopContext)
+  const { isLoggedIn, userToken, activeUserId } = useContext(ShopContext)
   const navigate = useNavigate()
 
   const [reviews, setReviews] = useState([])
@@ -188,11 +188,11 @@ export default function ReviewSection({ productId }) {
   const removeFile = (i) => setFiles((prev) => prev.filter((_, idx) => idx !== i))
 
   return (
-    <div className="mt-16 border-t border-gray-200 dark:border-gray-700 pt-10">
+    <div className="mt-16 border-t border-gray-200 pt-10">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
           <Star size={24} className="text-yellow-400 fill-yellow-400" />
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Reviews</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Reviews</h2>
         </div>
         <button
           onClick={() => isLoggedIn ? setShowForm(!showForm) : navigate("/login")}
@@ -202,13 +202,12 @@ export default function ReviewSection({ productId }) {
         </button>
       </div>
 
-      {/* Stats Summary */}
       {stats && stats.total > 0 && (
-        <div className="flex flex-col sm:flex-row gap-8 p-6 bg-gray-50 dark:bg-gray-800/50 rounded-2xl mb-8">
+        <div className="flex flex-col sm:flex-row gap-8 p-6 bg-gray-50 rounded-2xl mb-8">
           <div className="flex flex-col items-center justify-center min-w-[120px]">
-            <span className="text-5xl font-black text-gray-900 dark:text-gray-100">{stats.average}</span>
+            <span className="text-5xl font-black text-gray-900">{stats.average}</span>
             <StarRating rating={Math.round(stats.average)} readonly size={16} />
-            <span className="text-sm text-gray-500 dark:text-gray-400 mt-1">{stats.total} review{stats.total !== 1 ? "s" : ""}</span>
+            <span className="text-sm text-gray-500 mt-1">{stats.total} review{stats.total !== 1 ? "s" : ""}</span>
           </div>
           <div className="flex-1 space-y-1">
             {[5, 4, 3, 2, 1].map((star) => (
@@ -218,42 +217,41 @@ export default function ReviewSection({ productId }) {
         </div>
       )}
 
-      {/* Write Review Form */}
       {showForm && (
-        <form onSubmit={handleSubmit} className="mb-8 p-6 border border-gray-200 dark:border-gray-700 rounded-2xl bg-white dark:bg-gray-800 space-y-4">
+        <form onSubmit={handleSubmit} className="mb-8 p-6 border border-gray-200 rounded-2xl bg-white space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rating</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Rating</label>
             <StarRating rating={form.rating} onRate={(r) => setForm((f) => ({ ...f, rating: r }))} size={28} />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
             <input
               type="text"
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
               placeholder="Give your review a title"
               maxLength={100}
-              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 outline-none"
+              className="w-full p-3 border border-gray-300 rounded-xl bg-white text-gray-900 focus:ring-2 focus:ring-green-500 outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Comment</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Comment</label>
             <textarea
               value={form.comment}
               onChange={(e) => setForm((f) => ({ ...f, comment: e.target.value }))}
               placeholder="What did you think of this product?"
               rows={3}
               maxLength={1000}
-              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 outline-none resize-none"
+              className="w-full p-3 border border-gray-300 rounded-xl bg-white text-gray-900 focus:ring-2 focus:ring-green-500 outline-none resize-none"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Photos (optional, max 5)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Photos (optional, max 5)</label>
             <div className="flex items-center gap-3 flex-wrap">
-              <label className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 text-sm text-gray-600 dark:text-gray-400 transition-colors">
+              <label className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50 text-sm text-gray-600 transition-colors">
                 <ImagePlus size={18} />
                 Upload
                 <input
@@ -265,7 +263,7 @@ export default function ReviewSection({ productId }) {
                 />
               </label>
               {files.map((f, i) => (
-                <span key={i} className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs text-gray-600 dark:text-gray-300">
+                <span key={i} className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 rounded-lg text-xs text-gray-600">
                   {f.name.length > 20 ? f.name.slice(0, 20) + "..." : f.name}
                   <button type="button" onClick={() => removeFile(i)} className="ml-1 text-gray-400 hover:text-red-500">
                     <X size={14} />
@@ -285,14 +283,13 @@ export default function ReviewSection({ productId }) {
         </form>
       )}
 
-      {/* Sort */}
       {reviews.length > 0 && (
         <div className="flex items-center justify-end gap-2 mb-4">
           <SortAsc size={16} className="text-gray-500" />
           <select
             value={sort}
             onChange={(e) => { setSort(e.target.value); setPage(1) }}
-            className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 outline-none"
+            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-700 outline-none"
           >
             <option value="newest">Newest</option>
             <option value="highest">Highest Rated</option>
@@ -301,22 +298,20 @@ export default function ReviewSection({ productId }) {
         </div>
       )}
 
-      {/* Review List */}
       {loading ? (
         <div className="text-center py-12 text-gray-400">Loading reviews...</div>
       ) : reviews.length === 0 ? (
-        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+        <div className="text-center py-12 text-gray-500">
           No reviews yet. Be the first to review this product!
         </div>
       ) : (
         <div className="space-y-4">
           {reviews.map((r) => (
-            <ReviewCard key={r._id} review={r} onDelete={handleDelete} currentUserId={r.user?._id} />
+            <ReviewCard key={r._id} review={r} onDelete={handleDelete} currentUserId={activeUserId} />
           ))}
         </div>
       )}
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 mt-6">
           {Array.from({ length: totalPages }, (_, i) => (
@@ -326,7 +321,7 @@ export default function ReviewSection({ productId }) {
               className={`w-8 h-8 rounded-lg text-sm font-bold transition-colors ${
                 page === i + 1
                   ? "bg-green-600 text-white"
-                  : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
               {i + 1}

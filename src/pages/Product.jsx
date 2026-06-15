@@ -252,7 +252,7 @@ function Product() {
 
       <ReviewSection productId={productData._id} />
 
-      <div className="mt-16 border-t border-gray-100 dark:border-gray-700 pt-10">
+      <div className="mt-16 border-t border-gray-100 pt-10">
         <RelatedProducts
           category={productData.category}
           subCategory={productData.subCategory}

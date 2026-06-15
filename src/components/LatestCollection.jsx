@@ -52,7 +52,7 @@ export default function Collection() {
           return (
             <article
               key={product._id}
-              className="gsap-item group relative bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
+              className="gsap-item group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
             >
               <div
                 className="relative aspect-square overflow-hidden bg-gray-50 cursor-pointer"

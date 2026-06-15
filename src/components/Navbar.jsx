@@ -2,7 +2,7 @@ import React, { useContext, useState } from 'react'
 import { assets } from '../assets/assets'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { ShopContext } from '../context/ShopContext'
-import { FiX, FiMenu, FiUser, FiLogOut, FiChevronRight } from 'react-icons/fi' // Added icons
+import { FiX, FiMenu, FiUser, FiLogOut, FiChevronRight } from 'react-icons/fi'
 
 const Navbar = () => {
     const { setShowSearch, showSearch, getCartCount, isLoggedIn, logoutUser, isAdmin } = useContext(ShopContext)

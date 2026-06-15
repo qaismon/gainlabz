@@ -19,6 +19,7 @@ import 'react-toastify/dist/ReactToastify.css'
 import CursorSpotlightWrapper from './components/CursorSpotlightwrapper'
 
 
+
 // 🔑 Admin Imports
 import AdminProtectedRoute from './components/AdminProtectedRoute'
 import AdminLayout from './pages/AdminLayout';
@@ -89,4 +90,4 @@ const App = () => {
   )
 }
 
-export default App;
+export default App
