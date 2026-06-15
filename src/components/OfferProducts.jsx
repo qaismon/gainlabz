@@ -1,5 +1,4 @@
 import React, { useContext, useState, useEffect, forwardRef } from "react";
-import { motion } from "framer-motion";
 import { FiEye } from "react-icons/fi";
 import { ShopContext } from "../context/ShopContext";
 import { useNavigate } from "react-router-dom";
@@ -56,12 +55,9 @@ const OfferProducts = forwardRef((props, ref) => {
           let imageSrc = Array.isArray(rawImage) ? rawImage[0] : rawImage;
 
           return (
-            <motion.article
+            <article
               key={product._id}
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              className="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+              className="gsap-item group relative bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
             >
               {/* SALE BADGE */}
               <div className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full z-10 shadow-sm">
@@ -107,7 +103,7 @@ const OfferProducts = forwardRef((props, ref) => {
                   </span>
                 </div>
               </div>
-            </motion.article>
+            </article>
           );
         })}
       </div>

@@ -1,5 +1,4 @@
 import React, { useContext, useState, useMemo } from "react";
-import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { FiEye } from "react-icons/fi";
 import { ShopContext } from "../context/ShopContext";
@@ -51,11 +50,9 @@ export default function Collection() {
           let imageSrc = Array.isArray(rawImage) ? rawImage[0] : rawImage;
 
           return (
-            <motion.article
+            <article
               key={product._id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
+              className="gsap-item group relative bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
             >
               <div
                 className="relative aspect-square overflow-hidden bg-gray-50 cursor-pointer"
@@ -88,7 +85,7 @@ export default function Collection() {
                   {currency}{Number(product.price).toFixed(2)}
                 </p>
               </div>
-            </motion.article>
+            </article>
           );
         })}
       </div>

@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { ShopContext } from "../context/ShopContext";
 import RelatedProducts from "../components/RelatedProducts";
+import ReviewSection from "../components/ReviewSection";
 import { toast } from "react-toastify";
 import API_BASE_URL from "../services/api";
 import { ChevronRight, ShoppingBag, Minus, Plus, CheckCircle, AlertCircle } from 'lucide-react';
@@ -249,7 +250,9 @@ function Product() {
         </div>
       </div>
 
-      <div className="mt-16 border-t border-gray-100 pt-10">
+      <ReviewSection productId={productData._id} />
+
+      <div className="mt-16 border-t border-gray-100 dark:border-gray-700 pt-10">
         <RelatedProducts
           category={productData.category}
           subCategory={productData.subCategory}
