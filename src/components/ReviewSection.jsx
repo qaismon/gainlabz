@@ -27,6 +27,8 @@ function ReviewCard({ review, onDelete, currentUserId }) {
     return `${base}/${src}`
   }
 
+  const reviewUserId = review.user?._id || (typeof review.user === 'string' ? review.user : null)
+
   return (
     <div className="border border-gray-200 rounded-xl p-5 bg-white">
       <div className="flex items-start justify-between">
@@ -51,7 +53,7 @@ function ReviewCard({ review, onDelete, currentUserId }) {
           <span className="text-[11px] text-gray-400">
             {new Date(review.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
           </span>
-          {currentUserId === review.user?._id && (
+          {currentUserId && String(currentUserId) === String(reviewUserId) && (
             <button
               onClick={() => onDelete(review._id)}
               className="p-1 text-gray-400 hover:text-red-500 transition-colors"

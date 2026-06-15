@@ -23,7 +23,14 @@ function ShopContextProvider({ children }) {
 
   /* AUTH STATE */
   const [userToken, setUserToken] = useState(localStorage.getItem("token"));
-  const [activeUserId, setActiveUserId] = useState(localStorage.getItem("userId"));
+  const getUserIdFromToken = () => {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+    try {
+      return JSON.parse(atob(token.split(".")[1])).id || null;
+    } catch { return null; }
+  };
+  const [activeUserId, setActiveUserId] = useState(localStorage.getItem("userId") || getUserIdFromToken());
   const [activeUserName, setActiveUserName] = useState(localStorage.getItem("userName"));
   const [userRole, setUserRole] = useState(localStorage.getItem("userRole"));
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
@@ -563,6 +570,7 @@ const getCartItemsArray = () => {
         isLoggedIn,
         userRole,
         activeUserName,
+        activeUserId,
         loginWithAPI,
         logoutUser,
         addToCart,
