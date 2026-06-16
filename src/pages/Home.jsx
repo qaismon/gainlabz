@@ -6,6 +6,7 @@ import OurPolicy from '../components/OurPolicy'
 import NewsletterBox from '../components/NewsletterBox'
 import MarqueeBanner from '../components/MarqueeBanner'
 import OfferProducts from '../components/OfferProducts'
+import RecommendedForYou from '../components/RecommendedForYou'
 
 function Home() {
   const bestSellerRef = useRef(null);
@@ -36,6 +37,8 @@ function Home() {
       <div>
         <BestSeller ref={bestSellerRef}/>
       </div>
+
+      <RecommendedForYou/>
 
       <div>
         <OurPolicy/>

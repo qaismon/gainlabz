@@ -3,6 +3,7 @@ import { useParams } from "react-router";
 import { ShopContext } from "../context/ShopContext";
 import RelatedProducts from "../components/RelatedProducts";
 import ReviewSection from "../components/ReviewSection";
+import FrequentlyBought from "../components/FrequentlyBought";
 import { toast } from "react-toastify";
 import API_BASE_URL from "../services/api";
 import { ChevronRight, ShoppingBag, Minus, Plus, CheckCircle, AlertCircle } from 'lucide-react';
@@ -251,6 +252,8 @@ function Product() {
       </div>
 
       <ReviewSection productId={productData._id} />
+
+      <FrequentlyBought productId={productData._id} />
 
       <div className="mt-16 border-t border-gray-100 pt-10">
         <RelatedProducts
