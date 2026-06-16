@@ -255,12 +255,10 @@ function Product() {
 
       <FrequentlyBought productId={productData._id} />
 
-      <div className="mt-16 border-t border-gray-100 pt-10">
         <RelatedProducts
           category={productData.category}
           subCategory={productData.subCategory}
         />
-      </div>
     </div>
   );
 }

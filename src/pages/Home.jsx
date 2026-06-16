@@ -30,6 +30,10 @@ function Home() {
         <LatestCollection/>
       </div>
 
+       <div>
+      <RecommendedForYou/>
+      </div>
+
       <div>
         <OfferProducts/>
       </div>
@@ -38,7 +42,7 @@ function Home() {
         <BestSeller ref={bestSellerRef}/>
       </div>
 
-      <RecommendedForYou/>
+     
 
       <div>
         <OurPolicy/>

@@ -25,7 +25,7 @@ const getImageUrl = (src) => {
 };
 
 const BestSeller = forwardRef((props, ref) => {
-  const { products = [], currency } = useContext(ShopContext);
+  const { products = [], currency, productsLoading } = useContext(ShopContext);
   const [bestSeller, setBestSeller] = useState([]);
   const navigate = useNavigate();
 
@@ -37,6 +37,30 @@ const BestSeller = forwardRef((props, ref) => {
       setBestSeller(best.slice(0, 5));
     }
   }, [products]);
+
+  if (productsLoading) {
+    return (
+      <div ref={ref} className="my-10 max-w-[1200px] mx-auto px-4">
+        <div className="text-center text-3xl py-8">
+          <Title text1={"Best"} text2={"Sellers"} />
+        </div>
+        <p className="text-center text-gray-400 text-sm mb-6 animate-pulse">
+          Finding the fan favorites...
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 gap-y-6">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <article key={i} className="bg-white rounded-xl overflow-hidden shadow-sm animate-pulse">
+              <div className="aspect-square bg-gray-200" />
+              <div className="p-3 text-center space-y-2">
+                <div className="h-3 bg-gray-200 rounded w-3/4 mx-auto" />
+                <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto" />
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div ref={ref} className="my-10 max-w-[1200px] mx-auto px-4">

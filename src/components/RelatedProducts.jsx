@@ -20,7 +20,7 @@ function RelatedProducts({ category, subCategory }) {
     }, [products, category, subCategory])
 
     return (
-        <div className='my-24'>
+        <div className='my-14'>
             <div className='text-center text-3xl py-2'>
                 <Title text1={"Related"} text2={"Products"} />
             </div>
