@@ -1,8 +1,82 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { ShopContext } from '../../context/ShopContext';
 import API_BASE_URL from '../../services/api';
 import { toast } from 'react-toastify';
-import { FiPlus, FiTrash2, FiCheck, FiX } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiCheck, FiX, FiChevronDown } from 'react-icons/fi';
+
+const getImageUrl = (src) => {
+  let cleanSrc = Array.isArray(src) ? src[0] : src;
+  if (Array.isArray(cleanSrc)) cleanSrc = cleanSrc[0];
+  if (!cleanSrc || typeof cleanSrc !== 'string') return "/placeholder.png";
+  if (cleanSrc.startsWith("data:") || cleanSrc.startsWith("http")) return cleanSrc;
+  const BASE_DOMAIN = API_BASE_URL.replace("/api", "");
+  const finalPath = cleanSrc.startsWith("/") ? cleanSrc : `/${cleanSrc}`;
+  return `${BASE_DOMAIN}${finalPath}`;
+};
+
+function ProductPicker({ selected, products, onSelect }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef();
+  const selectedProd = products.find(p => p._id === selected);
+
+  const getPrice = (p) => p.onSale && p.offerPrice ? Number(p.offerPrice) : Number(p.price);
+
+  return (
+    <div ref={ref} className="relative flex-1">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-2 p-2.5 border border-gray-200 rounded-xl text-sm bg-white hover:border-gray-300 transition-all"
+      >
+        {selectedProd ? (
+          <>
+            <img src={getImageUrl(selectedProd.image)} alt="" className="w-8 h-8 rounded-lg object-cover bg-gray-100" />
+            <span className="flex-1 truncate font-medium">{selectedProd.name}</span>
+            <span className="text-xs font-bold text-gray-500">{getPrice(selectedProd).toFixed(2)}</span>
+          </>
+        ) : (
+          <span className="text-gray-400">Select a product</span>
+        )}
+        <FiChevronDown size={16} className="text-gray-400 ml-auto" />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 max-h-60 overflow-y-auto">
+            {products.map((prod) => {
+              const price = getPrice(prod);
+              return (
+                <button
+                  type="button"
+                  key={prod._id}
+                  onClick={() => { onSelect(prod._id); setOpen(false); }}
+                  className={`w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-green-50 transition-all ${selected === prod._id ? 'bg-green-50 border-l-2 border-green-500' : ''}`}
+                >
+                  <img src={getImageUrl(prod.image)} alt="" className="w-9 h-9 rounded-lg object-cover bg-gray-100 flex-shrink-0" />
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="truncate font-medium text-gray-800">{prod.name}</p>
+                    <p className="text-[10px] text-gray-400 truncate">{prod.category}</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    {prod.onSale && prod.offerPrice ? (
+                      <>
+                        <span className="text-xs text-gray-400 line-through block leading-none">${Number(prod.price).toFixed(2)}</span>
+                        <span className="text-xs font-bold text-red-600">${Number(prod.offerPrice).toFixed(2)}</span>
+                      </>
+                    ) : (
+                      <span className="text-xs font-bold text-gray-700">${price.toFixed(2)}</span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 function AdminBundles() {
   const { userToken, isAdmin, products } = useContext(ShopContext);
@@ -68,10 +142,15 @@ function AdminBundles() {
     setForm({ ...form, products: updated });
   };
 
+  const getProdPrice = (product) => {
+    if (!product) return 0;
+    return product.onSale && product.offerPrice ? Number(product.offerPrice) : Number(product.price);
+  };
+
   const calcBundlePrice = (bundle) => {
     let total = 0;
     bundle.products.forEach(({ product, quantity }) => {
-      if (product && product.price) total += Number(product.price) * quantity;
+      total += getProdPrice(product) * quantity;
     });
     const discounted = total - (total * (bundle.discountPercent || 0)) / 100;
     return { original: total, discounted };
@@ -92,21 +171,22 @@ function AdminBundles() {
 
         {showForm && (
           <form onSubmit={handleCreate} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Bundle name" className="p-3 border border-gray-200 rounded-xl outline-none text-sm font-bold" />
               <input type="number" value={form.discountPercent} onChange={(e) => setForm({ ...form, discountPercent: e.target.value })} placeholder="Bundle discount %" className="p-3 border border-gray-200 rounded-xl outline-none text-sm" />
+              <div className="relative">
+                <input value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} placeholder="Image URL (optional)" className="w-full p-3 border border-gray-200 rounded-xl outline-none text-sm pr-10" />
+                {form.image && (
+                  <img src={form.image} alt="" className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg object-cover border border-gray-100" onError={(e) => { e.target.style.display = 'none' }} />
+                )}
+              </div>
             </div>
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Description" className="w-full p-3 border border-gray-200 rounded-xl outline-none text-sm" rows={2} />
 
             <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Products in Bundle</p>
             {form.products.map((p, i) => (
               <div key={i} className="flex gap-2 items-center">
-                <select value={p.product} onChange={(e) => updateProductRow(i, 'product', e.target.value)} className="flex-1 p-2.5 border border-gray-200 rounded-xl outline-none text-sm">
-                  <option value="">Select a product</option>
-                  {products.map((prod) => (
-                    <option key={prod._id} value={prod._id}>{prod.name} (${prod.price})</option>
-                  ))}
-                </select>
+                <ProductPicker selected={p.product} products={products} onSelect={(id) => updateProductRow(i, 'product', id)} />
                 <input type="number" min="1" value={p.quantity} onChange={(e) => updateProductRow(i, 'quantity', Number(e.target.value))} className="w-20 p-2.5 border border-gray-200 rounded-xl outline-none text-sm text-center" />
                 {form.products.length > 1 && (
                   <button type="button" onClick={() => removeProductRow(i)} className="p-2.5 text-red-500 hover:bg-red-50 rounded-xl"><FiX /></button>
@@ -127,8 +207,11 @@ function AdminBundles() {
             const { original, discounted } = calcBundlePrice(bundle);
             return (
               <div key={bundle._id} className={`bg-white p-6 rounded-2xl border shadow-sm ${bundle.isActive ? 'border-gray-100' : 'border-gray-200 opacity-60'}`}>
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
+                <div className="flex gap-4 justify-between items-start">
+                  {bundle.image && (
+                    <img src={bundle.image} alt="" className="w-20 h-20 rounded-xl object-cover flex-shrink-0 bg-gray-100 border border-gray-100" onError={(e) => { e.target.style.display = 'none' }} />
+                  )}
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3">
                       <h3 className="text-lg font-bold text-gray-800">{bundle.name}</h3>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${bundle.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{bundle.isActive ? 'Active' : 'Inactive'}</span>

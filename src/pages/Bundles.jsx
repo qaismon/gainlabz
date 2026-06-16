@@ -7,7 +7,7 @@ import { FiShoppingCart } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 
 function Bundles() {
-  const { currency, addToCart, isLoggedIn, navigate } = useContext(ShopContext);
+  const { currency, addToCart, isLoggedIn, setBundleDiscount, navigate } = useContext(ShopContext);
   const [bundles, setBundles] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -21,10 +21,15 @@ function Bundles() {
       .finally(() => setLoading(false));
   }, []);
 
+  const getItemPrice = (product) => {
+    if (!product || !product.price) return 0;
+    return product.onSale && product.offerPrice != null ? Number(product.offerPrice) : Number(product.price);
+  };
+
   const calcPrice = (bundle) => {
     let total = 0;
     bundle.products.forEach(({ product, quantity }) => {
-      if (product && product.price) total += Number(product.price) * quantity;
+      total += getItemPrice(product) * quantity;
     });
     const discounted = total - (total * (bundle.discountPercent || 0)) / 100;
     return { original: total, discounted };
@@ -32,9 +37,15 @@ function Bundles() {
 
   const addBundleToCart = (bundle) => {
     if (!isLoggedIn) { navigate('/login'); return; }
+    let totalOriginal = 0;
     bundle.products.forEach(({ product, quantity }) => {
-      if (product) addToCart(product._id, "Default", quantity);
+      if (!product) return;
+      addToCart(product._id, "Default", quantity);
+      totalOriginal += getItemPrice(product) * quantity;
     });
+    const totalDiscounted = totalOriginal - (totalOriginal * (bundle.discountPercent || 0)) / 100;
+    const savings = totalOriginal - totalDiscounted;
+    setBundleDiscount(savings);
     toast.success(`${bundle.name} added to cart!`);
   };
 
@@ -79,12 +90,18 @@ function Bundles() {
           const { original, discounted } = calcPrice(bundle);
           return (
             <div key={bundle._id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col">
-              <div className="h-48 bg-gradient-to-br from-green-100 to-green-50 flex items-center justify-center">
-                <div className="text-center">
-                  <p className="text-4xl mb-1">🎁</p>
-                  <p className="text-green-700 font-black text-lg">{bundle.products.length} Items</p>
+              {bundle.image ? (
+                <div className="h-48 overflow-hidden bg-gray-50">
+                  <img src={bundle.image} alt={bundle.name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.className = 'h-48 bg-gradient-to-br from-green-100 to-green-50 flex items-center justify-center'; }} />
                 </div>
-              </div>
+              ) : (
+                <div className="h-48 bg-gradient-to-br from-green-100 to-green-50 flex items-center justify-center">
+                  <div className="text-center">
+                    <p className="text-4xl mb-1">🎁</p>
+                    <p className="text-green-700 font-black text-lg">{bundle.products.length} Items</p>
+                  </div>
+                </div>
+              )}
 
               <div className="p-6 flex flex-col flex-1">
                 <h3 className="text-xl font-bold text-gray-800">{bundle.name}</h3>
@@ -95,6 +112,7 @@ function Bundles() {
                     <div key={i} className="flex items-center gap-2 text-sm text-gray-600">
                       <span className="w-5 h-5 bg-green-100 text-green-700 rounded-full text-[10px] font-bold flex items-center justify-center">{p.quantity}</span>
                       {p.product?.name || 'Unknown'}
+                      <span className="text-xs text-gray-400 ml-auto">{currency}{getItemPrice(p.product).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>

@@ -43,6 +43,7 @@ function ShopContextProvider({ children }) {
   const [orders, setOrders] = useState([]);
   const [users, setUsers] = useState([]);
   const [wishlistIds, setWishlistIds] = useState([]);
+  const [bundleDiscount, setBundleDiscount] = useState(0);
 
   const isFirstCartLoad = useRef(true);
 
@@ -215,6 +216,7 @@ useEffect(() => {
     setCartItems({});
     setOrders([]);
     setUsers([]);
+    setBundleDiscount(0);
     isFirstCartLoad.current = true;
     navigate("/");
   };
@@ -305,7 +307,7 @@ useEffect(() => {
         total += price * qty;
       }
     }
-    return total;
+    return Math.max(0, total - bundleDiscount);
   };
 
   /* ---------------- ORDER ACTIONS ---------------- */
@@ -347,6 +349,7 @@ useEffect(() => {
       const data = await response.json();
       if (response.ok) {
         setCartItems({});
+        setBundleDiscount(0);
         toast.success("Order Placed!");
         navigate('/orders');
       } else {
@@ -588,21 +591,28 @@ const updateRole = async (userId, newRole) => {
 
 const getCartItemsArray = () => {
     const orderItems = [];
+    let rawTotal = 0;
     for (const productId in cartItems) {
       for (const flavor in cartItems[productId]) {
         if (cartItems[productId][flavor] > 0) {
           const itemInfo = products.find((p) => p._id === productId);
           if (itemInfo) {
+            const price = itemInfo.onSale ? Number(itemInfo.offerPrice) : Number(itemInfo.price);
+            rawTotal += price * cartItems[productId][flavor];
             orderItems.push({
               product: productId,
               name: itemInfo.name,
               flavor: flavor,
-              price: itemInfo.onSale ? itemInfo.offerPrice : itemInfo.price,
+              price,
               quantity: cartItems[productId][flavor]
             });
           }
         }
       }
+    }
+    if (bundleDiscount > 0 && rawTotal > 0) {
+      const ratio = 1 - bundleDiscount / rawTotal;
+      orderItems.forEach(item => { item.price = +(item.price * ratio).toFixed(2); });
     }
     return orderItems;
   };
@@ -647,7 +657,9 @@ const getCartItemsArray = () => {
         wishlistIds,
         fetchWishlist,
         toggleWishlist,
-        reorder
+        reorder,
+        bundleDiscount,
+        setBundleDiscount
       }}
     >
       {children}

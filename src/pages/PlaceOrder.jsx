@@ -18,6 +18,11 @@ function PlaceOrder() {
 
     const navigate = useNavigate();
 
+    const [couponCode, setCouponCode] = useState("");
+    const [appliedCoupon, setAppliedCoupon] = useState(null);
+    const [discountAmount, setDiscountAmount] = useState(0);
+    const [couponLoading, setCouponLoading] = useState(false);
+
     const subtotal = getCartAmount();
     const totalAfterDiscount = Math.max(0, subtotal - (appliedCoupon ? discountAmount : 0));
     const totalAmount = subtotal > 0 ? totalAfterDiscount + delivery_fee : 0;
@@ -65,10 +70,6 @@ function PlaceOrder() {
     const [useSavedAddress, setUseSavedAddress] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState("");
     const [upiId, setUpiId] = useState("");
-    const [couponCode, setCouponCode] = useState("");
-    const [appliedCoupon, setAppliedCoupon] = useState(null);
-    const [discountAmount, setDiscountAmount] = useState(0);
-    const [couponLoading, setCouponLoading] = useState(false);
 
     useEffect(() => {
         if (defaultAddress && Object.keys(defaultAddress).length > 0) {

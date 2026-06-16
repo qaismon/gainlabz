@@ -1,4 +1,4 @@
-import React, { useContext, useEffect } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import Title from '../components/Title';
 import { ShopContext } from '../context/ShopContext';
 import { toast } from 'react-toastify';
@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 function Orders() {
     const { currency, orders, fetchOrders, cancelOrder, reorder } = useContext(ShopContext);
     const navigate = useNavigate();
+    const [reorderModal, setReorderModal] = useState(null);
 
     useEffect(() => {
         if (fetchOrders) fetchOrders();
@@ -138,10 +139,7 @@ function Orders() {
                                     {order.status === 'Delivered' && (
                                         <div className='pt-4 border-t border-gray-50 flex justify-start'>
                                             <button
-                                                onClick={async () => {
-                                                    const ok = await reorder(order._id);
-                                                    if (ok) navigate('/orders');
-                                                }}
+                                                onClick={() => setReorderModal(order)}
                                                 className='text-green-600 text-xs font-bold hover:text-green-700 transition-colors flex items-center gap-1 border border-green-100 px-3 py-2 rounded-lg hover:bg-green-50'
                                             >
                                                 🔄 REORDER
@@ -168,6 +166,42 @@ function Orders() {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* REORDER CONFIRMATION MODAL */}
+            {reorderModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setReorderModal(null)}>
+                    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
+                        <div className="text-center">
+                            <div className="text-5xl mb-4">🔄</div>
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">Reorder This Order?</h3>
+                            <p className="text-sm text-gray-500 mb-1">
+                                {reorderModal.items.length} item(s) · {currency}{reorderModal.amount.toFixed(2)}
+                            </p>
+                            <p className="text-xs text-gray-400 mb-6">
+                                A new order will be placed with the same items.
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setReorderModal(null)}
+                                    className="flex-1 py-3 border border-gray-200 rounded-xl text-gray-700 font-bold hover:bg-gray-50 transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        const ok = await reorder(reorderModal._id);
+                                        setReorderModal(null);
+                                        if (ok) navigate('/orders');
+                                    }}
+                                    className="flex-1 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all shadow-lg shadow-green-200"
+                                >
+                                    Confirm Order
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
