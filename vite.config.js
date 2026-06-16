@@ -11,6 +11,13 @@ export default defineConfig({
 
   optimizeDeps: {
     exclude: ['canvas-confetti']
+  },
+
+  build: {
+    sourcemap: false,
+    rollupOptions: {
+      maxParallelFileOps: 2
+    }
   }
 })
 

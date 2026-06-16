@@ -13,7 +13,6 @@ function AddProduct() {
         description: '', 
         category: 'Protein', 
         subCategory: '', 
-        image: '', 
         flavor: '', 
         bestseller: false,
         stock: '' 
@@ -36,7 +35,7 @@ function AddProduct() {
             setImageFile(null);
         }
     };
-    
+
     const fileToBase64 = (file) => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -57,24 +56,25 @@ function AddProduct() {
         }
 
         try {
-            
             const base64Image = await fileToBase64(imageFile);
-            
             const flavorArray = data.flavor.split(',').map(f => f.trim()).filter(f => f.length > 0);
             
             const productToSend = {
-                ...data,
+                name: data.name,
                 price: parseFloat(data.price),
-                stock: parseInt(data.stock, 10), 
+                stock: parseInt(data.stock, 10),
+                description: data.description,
+                category: data.category,
+                subCategory: data.subCategory,
+                bestseller: data.bestseller,
                 flavor: flavorArray,
-                image: [base64Image] 
+                image: [base64Image]
             };
-            
             
             const result = await addProduct(productToSend);
             
             if (result) {
-                toast.success(`Product "${productToSend.name}" added!`);
+                toast.success(`Product "${data.name}" added!`);
                 setData(initialData); 
                 setImageFile(null); 
                 
@@ -82,8 +82,8 @@ function AddProduct() {
                 navigate('/admin/list-products');
             }
         } catch (error) {
-            console.error("Image processing or add product error:", error);
-            toast.error("Failed to process image or add product.");
+            console.error("Add product error:", error);
+            toast.error("Failed to add product.");
         } finally {
             setLoading(false);
         }
@@ -136,7 +136,7 @@ function AddProduct() {
                     <input 
                         id="productImage"
                         type="file" 
-                        accept=".jpg, .jpeg, .png"
+                        accept=".jpg, .jpeg, .png, .webp, .jfif"
                         onChange={handleImageChange}
                         required
                         className='w-full' 

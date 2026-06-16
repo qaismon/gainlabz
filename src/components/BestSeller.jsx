@@ -54,7 +54,7 @@ const BestSeller = forwardRef((props, ref) => {
           return (
             <article
               key={product._id}
-              className="gsap-item group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+              className="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
             >
               {/* IMAGE */}
               <div

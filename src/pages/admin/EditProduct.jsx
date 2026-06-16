@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ShopContext } from '../../context/ShopContext';
 import { toast } from 'react-toastify';
-import API_BASE_URL from "../../services/api"; // Added for dynamic domain
+import API_BASE_URL from "../../services/api";
 
 function EditProduct() {
     const { products, updateProduct, isAdmin } = useContext(ShopContext);
@@ -35,7 +35,6 @@ function EditProduct() {
         const productToEdit = products.find(p => String(p._id) === String(id));
 
         if (productToEdit) {
-            // Flatten arrays immediately when loading into state
             const flatImages = Array.isArray(productToEdit.image) ? productToEdit.image.flat() : [];
             const flatFlavors = Array.isArray(productToEdit.flavor) ? productToEdit.flavor.flat() : [];
 
@@ -82,15 +81,18 @@ function EditProduct() {
                 finalImageArray.push(base64Image);
             }
 
-            // Clean flavors before sending
             const flavorArray = typeof data.flavor === 'string' 
                 ? data.flavor.split(',').map(f => f.trim()).filter(f => f.length > 0)
                 : data.flavor;
             
             const productToSend = {
-                ...data,
+                name: data.name,
                 price: Number(data.price),
-                stock: Number(data.stock), 
+                stock: Number(data.stock),
+                description: data.description,
+                category: data.category,
+                subCategory: data.subCategory,
+                bestseller: data.bestseller,
                 flavor: flavorArray,
                 image: finalImageArray 
             };
@@ -99,7 +101,7 @@ function EditProduct() {
             
             if (success) {
                 toast.success("Product updated successfully!");
-                setNewImageFile(null); // Clear pending image
+                setNewImageFile(null);
                 navigate('/admin/list-products'); 
             }
         } catch (error) {
