@@ -2,10 +2,10 @@ import React, { useContext, useState } from 'react'
 import { assets } from '../assets/assets'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { ShopContext } from '../context/ShopContext'
-import { FiX, FiMenu, FiUser, FiLogOut, FiChevronRight } from 'react-icons/fi'
+import { FiX, FiMenu, FiUser, FiLogOut, FiChevronRight, FiHeart } from 'react-icons/fi'
 
 const Navbar = () => {
-    const { setShowSearch, showSearch, getCartCount, isLoggedIn, logoutUser, isAdmin } = useContext(ShopContext)
+    const { setShowSearch, showSearch, getCartCount, isLoggedIn, logoutUser, isAdmin, wishlistIds } = useContext(ShopContext)
     const [visible, setVisible] = useState(false)
     const location = useLocation()
 
@@ -79,6 +79,15 @@ const Navbar = () => {
                     </div>
                 </div>
                 
+                <Link to="/wishlist" className='relative'>
+                  <FiHeart size={20} className='text-gray-700 hover:text-red-500 transition-colors' />
+                  {wishlistIds.length > 0 && (
+                    <p className='absolute right-[-5px] bottom-[-5px] w-4 text-center leading-4 bg-red-500 text-white aspect-square rounded-full text-[8px] font-bold'>
+                      {wishlistIds.length}
+                    </p>
+                  )}
+                </Link>
+
                 <Link to="/cart" className='relative'>
                     <img src={assets.shopping_cart} className='w-5 min-w-5' alt="shopping-cart-icon"/>
                     <p className='absolute right-[-5px] bottom-[-5px] w-4 text-center leading-4 bg-green-500 text-white aspect-square rounded-full text-[8px] font-bold'>{getCartCount()}</p>
@@ -107,6 +116,7 @@ const Navbar = () => {
                         {[
                             { name: 'Home', path: '/' },
                             { name: 'Collections', path: '/collections' },
+                            { name: 'Wishlist', path: '/wishlist' },
                             { name: 'About Us', path: '/about' },
                             { name: 'Contact', path: '/contact' }
                         ].map((item) => (

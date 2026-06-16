@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiEye } from "react-icons/fi";
+import { FiEye, FiHeart } from "react-icons/fi";
+import { ShopContext } from "../context/ShopContext";
 import API_BASE_URL from "../services/api";
 
 /* ---------------- IMAGE URL HELPER ---------------- */
@@ -32,6 +33,7 @@ function ProductItem({
   product
 }) {
   const navigate = useNavigate();
+  const { toggleWishlist, wishlistIds } = useContext(ShopContext);
 
   // Normalize image: use the passed 'image' prop or fall back to 'product.image'
   const imageArray = Array.isArray(image) ? image : (product?.image || []);
@@ -61,6 +63,20 @@ if (Array.isArray(imageSrc)) {
             SALE
           </span>
         )}
+
+        {/* WISHLIST HEART */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleWishlist(productId);
+          }}
+          className="absolute top-2 right-2 z-10 p-1.5 bg-white/80 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition-all"
+        >
+          <FiHeart
+            size={16}
+            className={wishlistIds.some(id => id.toString() === productId) ? "fill-red-500 text-red-500" : "text-gray-600"}
+          />
+        </button>
 
         {/* IMAGE → PRODUCT PAGE */}
         <div

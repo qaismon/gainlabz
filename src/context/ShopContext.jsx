@@ -41,7 +41,8 @@ function ShopContextProvider({ children }) {
   const [productsLoading, setProductsLoading] = useState(true); // <-- loading state
   const [cartItems, setCartItems] = useState({});
   const [orders, setOrders] = useState([]);
-  const [users, setUsers] = useState([]); 
+  const [users, setUsers] = useState([]);
+  const [wishlistIds, setWishlistIds] = useState([]);
 
   const isFirstCartLoad = useRef(true);
 
@@ -96,6 +97,40 @@ const fetchOrders = useCallback(async () => {
     if (isAdmin) fetchUsers(); 
   }, [fetchOrders, fetchUsers, isAdmin]);
 
+  /* ---------------- WISHLIST ---------------- */
+  const fetchWishlist = useCallback(async () => {
+    if (!userToken) { setWishlistIds([]); return; }
+    try {
+      const res = await fetch(`${BASE_URL}/api/wishlist/ids`, {
+        headers: { Authorization: `Bearer ${userToken}` }
+      });
+      const data = await res.json();
+      if (data.success) setWishlistIds(data.ids || []);
+    } catch {}
+  }, [userToken]);
+
+  const toggleWishlist = useCallback(async (productId) => {
+    if (!userToken) { navigate("/login"); return; }
+    try {
+      const isIn = wishlistIds.some(id => id.toString() === productId);
+      const method = isIn ? "DELETE" : "POST";
+      const res = await fetch(`${BASE_URL}/api/wishlist/${productId}`, {
+        method,
+        headers: { Authorization: `Bearer ${userToken}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (isIn) {
+          setWishlistIds(prev => prev.filter(id => id.toString() !== productId));
+          toast.success("Removed from wishlist");
+        } else {
+          setWishlistIds(prev => [...prev, productId]);
+          toast.success("Added to wishlist");
+        }
+      }
+    } catch {}
+  }, [userToken, wishlistIds, navigate]);
+
 
   const fetchProducts = useCallback(async () => {
     setProductsLoading(true);
@@ -143,7 +178,8 @@ useEffect(() => {
   };
 
   loadUserData();
-}, [userToken]); // Removed isAdmin to prevent unnecessary re-runs
+  fetchWishlist();
+  }, [userToken]); // Removed isAdmin to prevent unnecessary re-runs
 
   const loginWithAPI = async (email, password) => {
     const res = await fetch(`${BASE_URL}/api/auth/login`, {
@@ -586,7 +622,10 @@ const getCartItemsArray = () => {
         fetchOrders,
         updateProduct,
         deleteProduct,
-        updateOrderStatus
+        updateOrderStatus,
+        wishlistIds,
+        fetchWishlist,
+        toggleWishlist
       }}
     >
       {children}
