@@ -311,7 +311,7 @@ useEffect(() => {
   };
 
   /* ---------------- ORDER ACTIONS ---------------- */
-  const placeOrder = async (deliveryData, paymentMethod, upiId = "") => {
+  const placeOrder = async (deliveryData, paymentMethod, upiId = "", couponCode = "") => {
     try {
       const orderItems = [];
       for (const productId in cartItems) {
@@ -342,7 +342,8 @@ useEffect(() => {
           amount: getCartAmount() + delivery_fee,
           payment: paymentMethod,
           upiId: upiId,
-          deliveryData: deliveryData
+          deliveryData: deliveryData,
+          couponCode
         })
       });
 

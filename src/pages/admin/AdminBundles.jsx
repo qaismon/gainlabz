@@ -82,7 +82,7 @@ function AdminBundles() {
   const { userToken, isAdmin, products } = useContext(ShopContext);
   const [bundles, setBundles] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', description: '', discountPercent: 0, products: [{ product: '', quantity: 1 }] });
+  const [form, setForm] = useState({ name: '', description: '', image: '', discountPercent: 0, products: [{ product: '', quantity: 1 }] });
 
   const fetchBundles = async () => {
     const res = await fetch(`${API_BASE_URL}/api/bundles`, {
@@ -104,6 +104,7 @@ function AdminBundles() {
       body: JSON.stringify({
         name: form.name,
         description: form.description,
+        image: form.image || undefined,
         discountPercent: Number(form.discountPercent),
         products: form.products.filter(p => p.product)
       })
@@ -112,7 +113,7 @@ function AdminBundles() {
     if (data.success) {
       toast.success('Bundle created!');
       setShowForm(false);
-      setForm({ name: '', description: '', discountPercent: 0, products: [{ product: '', quantity: 1 }] });
+      setForm({ name: '', description: '', image: '', discountPercent: 0, products: [{ product: '', quantity: 1 }] });
       fetchBundles();
     } else toast.error(data.message);
   };
@@ -175,7 +176,14 @@ function AdminBundles() {
               <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Bundle name" className="p-3 border border-gray-200 rounded-xl outline-none text-sm font-bold" />
               <input type="number" value={form.discountPercent} onChange={(e) => setForm({ ...form, discountPercent: e.target.value })} placeholder="Bundle discount %" className="p-3 border border-gray-200 rounded-xl outline-none text-sm" />
               <div className="relative">
-                <input value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} placeholder="Image URL (optional)" className="w-full p-3 border border-gray-200 rounded-xl outline-none text-sm pr-10" />
+                <input type="file" accept="image/*" onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => setForm({ ...form, image: ev.target.result });
+                    reader.readAsDataURL(file);
+                  }
+                }} className="w-full p-3 border border-gray-200 rounded-xl outline-none text-sm file:mr-3 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:bg-green-50 file:text-green-700 file:font-bold file:text-xs hover:file:bg-green-100" />
                 {form.image && (
                   <img src={form.image} alt="" className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg object-cover border border-gray-100" onError={(e) => { e.target.style.display = 'none' }} />
                 )}
@@ -197,7 +205,7 @@ function AdminBundles() {
 
             <div className="flex gap-2 pt-2">
               <button type="submit" className="bg-green-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-green-700">Create</button>
-              <button type="button" onClick={() => setShowForm(false)} className="px-6 py-2.5 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50">Cancel</button>
+              <button type="button" onClick={() => { setShowForm(false); setForm({ name: '', description: '', image: '', discountPercent: 0, products: [{ product: '', quantity: 1 }] }); }} className="px-6 py-2.5 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50">Cancel</button>
             </div>
           </form>
         )}

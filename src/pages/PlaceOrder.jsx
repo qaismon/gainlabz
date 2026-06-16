@@ -130,7 +130,8 @@ function PlaceOrder() {
                             razorpay_signature: response.razorpay_signature,
                             formData,
                             items: orderItems, 
-                            amount: totalAmount
+                            amount: totalAmount,
+                            couponCode: appliedCoupon?.code || ""
                         })
                     });
 
@@ -214,7 +215,7 @@ function PlaceOrder() {
         } else {
             const orderItems = getFormattedItems();
             // Call placeOrder from ShopContext for COD/UPI
-            await placeOrder(formData, paymentMethod, upiId, orderItems);
+            await placeOrder(formData, paymentMethod, upiId, appliedCoupon?.code || "");
         }
     };
 
