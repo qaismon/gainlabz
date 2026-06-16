@@ -38,6 +38,9 @@ const Navbar = () => {
                 <NavLink to="/collections" className={navLinkClasses}>
                     <p className='text-lg'>Collections</p>
                 </NavLink>
+                <NavLink to="/bundles" className={navLinkClasses}>
+                    <p className='text-lg'>Bundles</p>
+                </NavLink>
                 <NavLink to="/about" className={navLinkClasses}>
                     <p className='text-lg'>About</p>
                 </NavLink>
@@ -116,6 +119,7 @@ const Navbar = () => {
                         {[
                             { name: 'Home', path: '/' },
                             { name: 'Collections', path: '/collections' },
+                            { name: 'Bundles', path: '/bundles' },
                             { name: 'Wishlist', path: '/wishlist' },
                             { name: 'About Us', path: '/about' },
                             { name: 'Contact', path: '/contact' }

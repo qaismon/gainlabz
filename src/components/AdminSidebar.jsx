@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { Menu, X, LayoutDashboard, PlusCircle, List, Tag, ShoppingCart, Users } from "lucide-react";
+import { Menu, X, LayoutDashboard, PlusCircle, List, Tag, ShoppingCart, Users, Percent, Gift } from "lucide-react";
 
 function AdminSidebar() {
   const [open, setOpen] = useState(false);
@@ -73,6 +73,16 @@ function AdminSidebar() {
           <NavLink to="/admin/offers" className={linkClasses} onClick={() => setOpen(false)}>
             <Tag size={20} />
             <span>Manage Offers</span>
+          </NavLink>
+
+          <NavLink to="/admin/coupons" className={linkClasses} onClick={() => setOpen(false)}>
+            <Percent size={20} />
+            <span>Coupons</span>
+          </NavLink>
+
+          <NavLink to="/admin/bundles" className={linkClasses} onClick={() => setOpen(false)}>
+            <Gift size={20} />
+            <span>Bundles</span>
           </NavLink>
 
           <NavLink to="/admin/orders" className={linkClasses} onClick={() => setOpen(false)}>

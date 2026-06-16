@@ -19,7 +19,42 @@ function PlaceOrder() {
     const navigate = useNavigate();
 
     const subtotal = getCartAmount();
-    const totalAmount = subtotal > 0 ? subtotal + delivery_fee : 0;
+    const totalAfterDiscount = Math.max(0, subtotal - (appliedCoupon ? discountAmount : 0));
+    const totalAmount = subtotal > 0 ? totalAfterDiscount + delivery_fee : 0;
+
+    const handleValidateCoupon = async () => {
+        if (!couponCode.trim()) return;
+        setCouponLoading(true);
+        try {
+            const res = await fetch(`${backendUrl}/api/coupons/validate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${userToken}`
+                },
+                body: JSON.stringify({ code: couponCode, amount: subtotal })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setAppliedCoupon(data.coupon);
+                setDiscountAmount(data.discountAmount);
+                toast.success(`${data.discountPercent}% off applied!`);
+            } else {
+                toast.error(data.message);
+                setAppliedCoupon(null);
+                setDiscountAmount(0);
+            }
+        } catch {
+            toast.error("Failed to validate coupon");
+        }
+        setCouponLoading(false);
+    };
+
+    const handleRemoveCoupon = () => {
+        setAppliedCoupon(null);
+        setDiscountAmount(0);
+        setCouponCode("");
+    };
 
     const addressDefaultState = {
         firstName: "", lastName: "", email: "", street: "",
@@ -30,6 +65,10 @@ function PlaceOrder() {
     const [useSavedAddress, setUseSavedAddress] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState("");
     const [upiId, setUpiId] = useState("");
+    const [couponCode, setCouponCode] = useState("");
+    const [appliedCoupon, setAppliedCoupon] = useState(null);
+    const [discountAmount, setDiscountAmount] = useState(0);
+    const [couponLoading, setCouponLoading] = useState(false);
 
     useEffect(() => {
         if (defaultAddress && Object.keys(defaultAddress).length > 0) {
@@ -237,6 +276,45 @@ function PlaceOrder() {
                                 <span>Delivery Fee</span>
                                 <span>{currency}{delivery_fee.toFixed(2)}</span>
                             </div>
+
+                            {/* COUPON */}
+                            <div className='pt-2'>
+                                {appliedCoupon ? (
+                                    <div className='flex items-center justify-between bg-green-50 p-3 rounded-lg border border-green-200'>
+                                        <div>
+                                            <span className='text-green-700 font-bold text-sm'>{appliedCoupon.code}</span>
+                                            <span className='text-green-600 text-xs ml-2'>(-{appliedCoupon.discountPercent}%)</span>
+                                        </div>
+                                        <button onClick={handleRemoveCoupon} className='text-red-500 text-xs font-bold hover:text-red-700'>✕</button>
+                                    </div>
+                                ) : (
+                                    <div className='flex gap-2'>
+                                        <input
+                                            type="text"
+                                            value={couponCode}
+                                            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                            placeholder="Coupon code"
+                                            className='flex-1 p-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-orange-100'
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={handleValidateCoupon}
+                                            disabled={couponLoading || !couponCode.trim()}
+                                            className='px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold hover:bg-orange-600 disabled:bg-gray-200 transition-all'
+                                        >
+                                            {couponLoading ? "..." : "Apply"}
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {discountAmount > 0 && (
+                                <div className='flex justify-between text-green-600'>
+                                    <span>Discount</span>
+                                    <span>-{currency}{discountAmount.toFixed(2)}</span>
+                                </div>
+                            )}
+
                             <div className='h-[1px] bg-gray-100 w-full my-2'></div>
                             <div className='flex justify-between text-xl font-bold text-gray-800'>
                                 <h2>Total</h2>

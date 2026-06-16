@@ -70,7 +70,7 @@ if (Array.isArray(imageSrc)) {
             e.stopPropagation();
             toggleWishlist(productId);
           }}
-          className="absolute top-2 right-2 z-10 p-1.5 bg-white/80 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition-all"
+          className="absolute top-2 right-2 z-10 p-1.5 bg-white/80 backdrop-blur-sm rounded-full shadow-md hover:bg-white cursor-pointer transition-all"
         >
           <FiHeart
             size={16}

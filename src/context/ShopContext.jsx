@@ -420,6 +420,27 @@ useEffect(() => {
     }
   };
 
+  const reorder = async (orderId) => {
+    if (!userToken) { toast.error("Please login"); return false; }
+    try {
+      const res = await fetch(`${BASE_URL}/api/orders/reorder/${orderId}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${userToken}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Order re-placed! Check your orders.");
+        return true;
+      } else {
+        toast.error(data.message);
+        return false;
+      }
+    } catch {
+      toast.error("Failed to reorder");
+      return false;
+    }
+  };
+
   const updateProduct = async (productId, updatedData) => {
     if (!userToken || !isAdmin) {
         toast.error("Not authorized");
@@ -625,7 +646,8 @@ const getCartItemsArray = () => {
         updateOrderStatus,
         wishlistIds,
         fetchWishlist,
-        toggleWishlist
+        toggleWishlist,
+        reorder
       }}
     >
       {children}
