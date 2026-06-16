@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { assets } from '../assets/assets';
 import { useNavigate } from 'react-router-dom';
 import MarqueeBanner from './MarqueeBanner';
@@ -24,8 +25,26 @@ function Hero({ scrollToBestSeller }) {
                         </div>
 
                         <h1 className='text-4xl sm:text-5xl lg:text-5xl font-black leading-snug tracking-tight mb-6'>
-                            Unleash Your <span className='text-green-600'>Full Potential</span><br />
-                            with Premium Supplements
+                            {["Unleash","Your","Full","Potential","with","Premium","Supplements"].map((word, i) => {
+                                const isGreen = i === 2 || i === 3;
+                                return (
+                                    <React.Fragment key={i}>
+                                        {i === 4 && <br />}
+                                        <motion.span
+                                            custom={i}
+                                            initial={{ y: 20, opacity: 0 }}
+                                            animate={{
+                                                y: 0,
+                                                opacity: 1,
+                                                transition: { delay: i * 0.06, duration: 0.4, ease: "easeOut" }
+                                            }}
+                                            className={`inline-block mr-[0.3em] ${isGreen ? "text-green-600" : ""}`}
+                                        >
+                                            {word}
+                                        </motion.span>
+                                    </React.Fragment>
+                                );
+                            })}
                         </h1>
 
                         <div className='flex items-center gap-6 mt-8'>
