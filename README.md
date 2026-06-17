@@ -22,6 +22,7 @@ This one includes:
 - ✅ Coupon codes with discount
 - ✅ Bundle deals
 - ✅ One-click reorder
+- ✅ Full-text search (fuzzy, autocomplete, "Did you mean?")
 - ✅ Cloudinary image upload (products, reviews, bundles)
 - ✅ Loading skeletons on home sections
 - ✅ Light theme only
@@ -63,6 +64,15 @@ This one includes:
 - Images uploaded to Cloudinary via Base64
 
 📍 Code: `Product controller`
+
+🔍 Full-Text Search
+- **Site-wide search** — Search icon always visible in navbar. Click opens a dropdown input, pressing Enter navigates to `/search?q=...`
+- **Autocomplete** — As you type, a 250ms-debounced API call fetches suggestions showing product image thumbnail + name + price. Click a suggestion → goes directly to product page
+- **Search Results page** (`/search?q=...`) — Paginated grid of ProductItem cards with QuickView support. Shows result count, loading skeletons, and empty state
+- **"Did you mean?"** — When a typo is detected (e.g. "whay" → "whey"), a yellow banner appears with a clickable suggested correction. Also shown on the empty state as a button
+- **Quick View** — Eye icon on hover opens QuickView modal with product details, image gallery, flavor selection, and Add to Cart
+
+📍 Code: `product.controller.js`, `Navbar.jsx`, `SearchResults.jsx`, `QuickView.jsx`
 
 🌟 Product Recommendations
 - **RecommendedForYou** on Home page — analyzes user's purchase history to find categories, then shows top-selling products in those categories. Falls back to popular products when not logged in or no history
@@ -186,6 +196,7 @@ MVC pattern, Middleware-based auth, Clean separation of concerns
 - **Database** — MongoDB (Mongoose)
 - **Auth & Payments** — JWT, bcrypt, Razorpay
 - **Media** — Cloudinary SDK, multer-storage-cloudinary
+- **Search** — Fuse.js (fuzzy matching)
 
 📦 Key Frontend Dependencies
 - `react-router-dom` — routing
