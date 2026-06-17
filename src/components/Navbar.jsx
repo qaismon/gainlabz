@@ -1,19 +1,36 @@
-import React, { useContext, useState } from 'react'
+import React, { useContext, useState, useRef, useEffect } from 'react'
 import { assets } from '../assets/assets'
-import { Link, NavLink, useLocation } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { ShopContext } from '../context/ShopContext'
-import { FiX, FiMenu, FiUser, FiLogOut, FiChevronRight, FiHeart } from 'react-icons/fi'
+import { FiX, FiMenu, FiUser, FiLogOut, FiChevronRight, FiHeart, FiSearch } from 'react-icons/fi'
 
 const Navbar = () => {
-    const { setShowSearch, showSearch, getCartCount, isLoggedIn, logoutUser, isAdmin, wishlistIds } = useContext(ShopContext)
+    const { setShowSearch, showSearch, getCartCount, isLoggedIn, logoutUser, isAdmin, wishlistIds, search, setSearch } = useContext(ShopContext)
     const [visible, setVisible] = useState(false)
-    const location = useLocation()
+    const [showNavSearch, setShowNavSearch] = useState(false)
+    const searchRef = useRef(null)
+    const navigate = useNavigate()
+
+    useEffect(() => {
+      const handleClickOutside = (e) => {
+        if (searchRef.current && !searchRef.current.contains(e.target)) {
+          setShowNavSearch(false);
+        }
+      };
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const handleSearchKeyDown = (e) => {
+      if (e.key === "Enter" && search.trim()) {
+        navigate(`/search?q=${encodeURIComponent(search.trim())}`);
+        setShowNavSearch(false);
+      }
+    };
 
     const handleLogout = () => {
         logoutUser()
     }
-
-    const isCollectionsPage = location.pathname === '/collections'
 
     const navLinkClasses = ({ isActive }) =>
         `flex flex-col items-center gap-1 text-sm transition-colors ${
@@ -50,14 +67,38 @@ const Navbar = () => {
             </ul>
 
             <div className='flex items-center gap-4 sm:gap-6'>
-                {isCollectionsPage && (
-                    <img 
-                        onClick={() => setShowSearch(!showSearch)} 
-                        src={assets.search_icon} 
-                        className='w-5 cursor-pointer hover:opacity-75 transition-opacity' 
-                        alt="search-icon"
-                    />
-                )}
+                <div className='relative' ref={searchRef}>
+                  <FiSearch
+                    size={20}
+                    onClick={() => setShowNavSearch(!showNavSearch)}
+                    className='cursor-pointer text-gray-700 hover:text-green-500 transition-colors'
+                  />
+                  {showNavSearch && (
+                    <div className='absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg p-2 z-30 min-w-[280px] sm:min-w-[360px]'>
+                      <div className='flex items-center gap-2'>
+                        <input
+                          value={search}
+                          onChange={(e) => setSearch(e.target.value)}
+                          onKeyDown={handleSearchKeyDown}
+                          placeholder='Search supplements...'
+                          className='flex-1 p-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-green-100 focus:border-green-400'
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => {
+                            if (search.trim()) {
+                              navigate(`/search?q=${encodeURIComponent(search.trim())}`);
+                              setShowNavSearch(false);
+                            }
+                          }}
+                          className='p-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors'
+                        >
+                          <FiSearch size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {/* Profile Dropdown (Desktop) */}
                 <div className='group relative hidden sm:block'>

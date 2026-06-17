@@ -12,6 +12,7 @@ import PlaceOrder from './pages/PlaceOrder'
 import Orders from './pages/Orders'
 import Wishlist from './pages/Wishlist'
 import Bundles from './pages/Bundles'
+import SearchResults from './pages/SearchResults'
 import React from 'react'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
@@ -73,6 +74,7 @@ const App = () => {
         <Route path='/orders' element={<Orders/>}/>
         <Route path='/wishlist' element={<Wishlist/>}/>
         <Route path='/bundles' element={<Bundles/>}/>
+        <Route path='/search' element={<SearchResults/>}/>
         <Route path='/profile' element={<Profile/>}/>
         <Route path='/privacy' element={<PrivacyPolicy/>}/>
         

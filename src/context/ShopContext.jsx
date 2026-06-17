@@ -44,6 +44,8 @@ function ShopContextProvider({ children }) {
   const [users, setUsers] = useState([]);
   const [wishlistIds, setWishlistIds] = useState([]);
   const [bundleDiscount, setBundleDiscount] = useState(0);
+  const [search, setSearch] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
 
   const isFirstCartLoad = useRef(true);
 
@@ -151,6 +153,17 @@ const fetchOrders = useCallback(async () => {
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+  const searchProductAPI = useCallback(async (query, page = 1, limit = 20) => {
+    try {
+      const res = await fetch(`${BASE_URL}/api/products/search?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`);
+      const data = await res.json();
+      return data;
+    } catch (err) {
+      console.error("Search Error:", err);
+      return { success: false, results: [], totalCount: 0 };
+    }
+  }, []);
 
 
 
@@ -622,6 +635,11 @@ const getCartItemsArray = () => {
   return (
     <ShopContext.Provider
       value={{
+        search,
+        setSearch,
+        showSearch,
+        setShowSearch,
+        searchProductAPI,
         backendUrl: BASE_URL,
         userToken,
         getCartItemsArray,
