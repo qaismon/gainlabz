@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { ShopContext } from "../context/ShopContext";
 import ProductItem from "../components/ProductItem";
 import Title from "../components/Title";
@@ -8,12 +8,14 @@ function SearchResults() {
   const { searchProductAPI } = useContext(ShopContext);
   const [searchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
+  const navigate = useNavigate();
 
   const [results, setResults] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [correctedQuery, setCorrectedQuery] = useState(null);
 
   const fetchPage = useCallback(async (p) => {
     if (!query.trim()) return;
@@ -24,14 +26,17 @@ function SearchResults() {
       setResults(data.results || []);
       setTotalCount(data.totalCount || 0);
       setTotalPages(data.totalPages || 0);
+      setCorrectedQuery(data.correctedQuery || null);
     } else {
       setResults([]);
       setTotalCount(0);
+      setCorrectedQuery(null);
     }
     setLoading(false);
   }, [query, searchProductAPI]);
 
   useEffect(() => {
+    setCorrectedQuery(null);
     fetchPage(1);
   }, [fetchPage]);
 
@@ -57,6 +62,21 @@ function SearchResults() {
         <p className="text-sm text-gray-500 mt-2">
           {loading ? "Searching..." : `${totalCount} result${totalCount !== 1 ? "s" : ""} for "${query}"`}
         </p>
+        {correctedQuery && !loading && (
+          <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-xl text-sm flex items-center gap-2">
+            <span>🔎</span>
+            <span className="text-gray-600">
+              Did you mean{" "}
+              <button
+                onClick={() => navigate(`/search?q=${encodeURIComponent(correctedQuery)}`)}
+                className="font-bold text-green-700 hover:text-green-800 underline underline-offset-2"
+              >
+                {correctedQuery}
+              </button>
+              ?
+            </span>
+          </div>
+        )}
       </div>
 
       {loading ? (
@@ -76,6 +96,14 @@ function SearchResults() {
           <p className="text-sm text-gray-400 mt-1 max-w-md">
             We couldn't find any products matching "{query}". Try different keywords or browse our collections.
           </p>
+          {correctedQuery && (
+            <button
+              onClick={() => navigate(`/search?q=${encodeURIComponent(correctedQuery)}`)}
+              className="mt-4 px-6 py-2.5 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all"
+            >
+              Search for "{correctedQuery}" instead
+            </button>
+          )}
         </div>
       ) : (
         <>
