@@ -64,7 +64,6 @@ function SearchResults() {
         </p>
         {correctedQuery && !loading && (
           <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-xl text-sm flex items-center gap-2">
-            <span>🔎</span>
             <span className="text-gray-600">
               Did you mean{" "}
               <button
@@ -119,6 +118,7 @@ function SearchResults() {
                 onSale={item.onSale}
                 image={item.image}
                 product={item}
+                openQuickView={() => {}}
               />
             ))}
           </div>
