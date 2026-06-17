@@ -2,30 +2,68 @@ import React, { useContext, useState, useRef, useEffect } from 'react'
 import { assets } from '../assets/assets'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { ShopContext } from '../context/ShopContext'
+import API_BASE_URL from '../services/api'
 import { FiX, FiMenu, FiUser, FiLogOut, FiChevronRight, FiHeart, FiSearch } from 'react-icons/fi'
+
+const getImageUrl = (src) => {
+  if (!src || typeof src !== 'string') return "/placeholder.png";
+  if (src.startsWith("data:") || src.startsWith("http")) return src;
+  const BASE_DOMAIN = API_BASE_URL.replace("/api", "");
+  return `${BASE_DOMAIN}/${src}`;
+};
 
 const Navbar = () => {
     const { setShowSearch, showSearch, getCartCount, isLoggedIn, logoutUser, isAdmin, wishlistIds, search, setSearch } = useContext(ShopContext)
     const [visible, setVisible] = useState(false)
     const [showNavSearch, setShowNavSearch] = useState(false)
+    const [suggestions, setSuggestions] = useState([])
+    const [suggestionsLoading, setSuggestionsLoading] = useState(false)
     const searchRef = useRef(null)
+    const debounceRef = useRef(null)
     const navigate = useNavigate()
 
     useEffect(() => {
       const handleClickOutside = (e) => {
         if (searchRef.current && !searchRef.current.contains(e.target)) {
           setShowNavSearch(false);
+          setSuggestions([]);
         }
       };
       document.addEventListener("mousedown", handleClickOutside);
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    useEffect(() => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (!search.trim() || !showNavSearch) {
+        setSuggestions([]);
+        return;
+      }
+      setSuggestionsLoading(true);
+      debounceRef.current = setTimeout(async () => {
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/products/suggest?q=${encodeURIComponent(search.trim())}`);
+          const data = await res.json();
+          if (data.success) setSuggestions(data.suggestions || []);
+        } catch {
+          setSuggestions([]);
+        }
+        setSuggestionsLoading(false);
+      }, 250);
+      return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    }, [search, showNavSearch]);
+
+    const closeSearch = () => {
+      setShowNavSearch(false);
+      setSuggestions([]);
+    };
+
     const handleSearchKeyDown = (e) => {
       if (e.key === "Enter" && search.trim()) {
         navigate(`/search?q=${encodeURIComponent(search.trim())}`);
-        setShowNavSearch(false);
+        closeSearch();
       }
+      if (e.key === "Escape") closeSearch();
     };
 
     const handleLogout = () => {
@@ -74,8 +112,8 @@ const Navbar = () => {
                     className='cursor-pointer text-gray-700 hover:text-green-500 transition-colors'
                   />
                   {showNavSearch && (
-                    <div className='absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg p-2 z-30 min-w-[280px] sm:min-w-[360px]'>
-                      <div className='flex items-center gap-2'>
+                    <div className='absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-30 min-w-[280px] sm:min-w-[360px]'>
+                      <div className='flex items-center gap-2 p-2'>
                         <input
                           value={search}
                           onChange={(e) => setSearch(e.target.value)}
@@ -88,7 +126,7 @@ const Navbar = () => {
                           onClick={() => {
                             if (search.trim()) {
                               navigate(`/search?q=${encodeURIComponent(search.trim())}`);
-                              setShowNavSearch(false);
+                              closeSearch();
                             }
                           }}
                           className='p-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors'
@@ -96,6 +134,42 @@ const Navbar = () => {
                           <FiSearch size={16} />
                         </button>
                       </div>
+                      {suggestions.length > 0 && (
+                        <div className='border-t border-gray-100 max-h-72 overflow-y-auto'>
+                          {suggestions.map((p) => (
+                            <button
+                              key={p._id}
+                              onClick={() => {
+                                navigate(`/product/${p._id}`);
+                                closeSearch();
+                              }}
+                              className='w-full flex items-center gap-3 px-3 py-2.5 hover:bg-green-50 transition-all text-left'
+                            >
+                              <img
+                                src={getImageUrl(Array.isArray(p.image) ? p.image[0] : p.image)}
+                                alt=""
+                                className='w-9 h-9 rounded-lg object-cover bg-gray-100 flex-shrink-0'
+                                onError={(e) => { e.target.src = "/placeholder.png"; }}
+                              />
+                              <div className='flex-1 min-w-0'>
+                                <p className='text-sm font-medium text-gray-800 truncate'>{p.name}</p>
+                                <p className='text-xs text-gray-400'>
+                                  {p.onSale && p.offerPrice != null
+                                    ? <>${Number(p.offerPrice).toFixed(2)} <span className='line-through'>${Number(p.price).toFixed(2)}</span></>
+                                    : <>${Number(p.price).toFixed(2)}</>
+                                  }
+                                </p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {suggestionsLoading && search.trim() && suggestions.length === 0 && (
+                        <div className='p-3 text-center text-xs text-gray-400'>Searching...</div>
+                      )}
+                      {!suggestionsLoading && search.trim() && suggestions.length === 0 && (
+                        <div className='p-3 text-center text-xs text-gray-400'>No suggestions</div>
+                      )}
                     </div>
                   )}
                 </div>

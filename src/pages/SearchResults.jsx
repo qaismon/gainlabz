@@ -1,11 +1,11 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ShopContext } from "../context/ShopContext";
 import ProductItem from "../components/ProductItem";
 import Title from "../components/Title";
 
 function SearchResults() {
-  const { searchProductAPI, currency } = useContext(ShopContext);
+  const { searchProductAPI } = useContext(ShopContext);
   const [searchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
 
@@ -15,32 +15,28 @@ function SearchResults() {
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  const fetchPage = useCallback(async (p) => {
     if (!query.trim()) return;
     setLoading(true);
-    setPage(1);
-    searchProductAPI(query, 1).then((data) => {
-      if (data.success) {
-        setResults(data.results);
-        setTotalCount(data.totalCount);
-        setTotalPages(data.totalPages);
-      } else {
-        setResults([]);
-        setTotalCount(0);
-      }
-    }).finally(() => setLoading(false));
-  }, [query]);
+    setPage(p);
+    const data = await searchProductAPI(query, p);
+    if (data.success) {
+      setResults(data.results || []);
+      setTotalCount(data.totalCount || 0);
+      setTotalPages(data.totalPages || 0);
+    } else {
+      setResults([]);
+      setTotalCount(0);
+    }
+    setLoading(false);
+  }, [query, searchProductAPI]);
+
+  useEffect(() => {
+    fetchPage(1);
+  }, [fetchPage]);
 
   const loadPage = (p) => {
-    setLoading(true);
-    setPage(p);
-    searchProductAPI(query, p).then((data) => {
-      if (data.success) {
-        setResults(data.results);
-        setTotalCount(data.totalCount);
-        setTotalPages(data.totalPages);
-      }
-    }).finally(() => setLoading(false));
+    fetchPage(p);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -84,8 +80,18 @@ function SearchResults() {
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {results.map((product) => (
-              <ProductItem key={product._id} product={product} />
+            {results.map((item) => (
+              <ProductItem
+                key={item._id}
+                _id={item._id}
+                id={item._id}
+                name={item.name}
+                price={item.price}
+                offerPrice={item.offerPrice}
+                onSale={item.onSale}
+                image={item.image}
+                product={item}
+              />
             ))}
           </div>
 
