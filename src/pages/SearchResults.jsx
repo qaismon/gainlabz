@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { ShopContext } from "../context/ShopContext";
 import ProductItem from "../components/ProductItem";
 import Title from "../components/Title";
+import QuickView from "../components/QuickView";
 
 function SearchResults() {
   const { searchProductAPI } = useContext(ShopContext);
@@ -16,6 +17,7 @@ function SearchResults() {
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(false);
   const [correctedQuery, setCorrectedQuery] = useState(null);
+  const [quickViewProduct, setQuickViewProduct] = useState(null);
 
   const fetchPage = useCallback(async (p) => {
     if (!query.trim()) return;
@@ -118,7 +120,7 @@ function SearchResults() {
                 onSale={item.onSale}
                 image={item.image}
                 product={item}
-                openQuickView={() => {}}
+                openQuickView={(p) => setQuickViewProduct(p)}
               />
             ))}
           </div>
@@ -156,6 +158,9 @@ function SearchResults() {
           )}
         </>
       )}
+
+      <QuickView product={quickViewProduct} isOpen={!!quickViewProduct} onClose={() => setQuickViewProduct(null)} currency="$" />
+
     </div>
   );
 }
